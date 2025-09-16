@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뼈 성장 시뮬레이션</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.8em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .canvas-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .canvas-title {
+            font-size: 1.5em;
+            color: #34495e;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        canvas {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 28px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            transform: scale(0.95);
+            opacity: 0.9;
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        
+        .info-panel p {
+            color: #555;
+            line-height: 1.8;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .stage-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .stage-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s;
+        }
+        
+        .stage-dot.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.3);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes grow {
+            from { transform: scaleY(0.8); }
+            to { transform: scaleY(1); }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦴 뼈 성장 과정 인터랙티브 시뮬레이션</h1>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="startGrowthAnimation()">성장 애니메이션 시작</button>
+            <button class="btn-success" onclick="showChondrocyteActivity()">연골세포 활동</button>
+            <button class="btn-warning" onclick="showOssification()">골화 과정</button>
+            <button class="btn-info" onclick="showBloodVesselInvasion()">혈관 침입</button>
+            <button class="btn-primary" onclick="resetView()">초기화</button>
+        </div>
+        
+        <div class="stage-indicator" id="stageIndicator">
+            <div class="stage-dot active" title="휴지기"></div>
+            <div class="stage-dot" title="증식기"></div>
+            <div class="stage-dot" title="비대기"></div>
+            <div class="stage-dot" title="석회화기"></div>
+            <div class="stage-dot" title="골화기"></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="canvas-section">
+                <h2 class="canvas-title">긴뼈 구조 (Long Bone Structure)</h2>
+                <canvas id="boneCanvas" width="500" height="600"></canvas>
+            </div>
+            
+            <div class="canvas-section">
+                <h2 class="canvas-title">성장판 확대 (Growth Plate Detail)</h2>
+                <canvas id="growthPlateCanvas" width="500" height="600"></canvas>
+            </div>
+        </div>
+        
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="boneLength">100</div>
+                <div class="stat-label">뼈 길이 (mm)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="growthRate">0.0</div>
+                <div class="stat-label">성장 속도 (mm/일)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="chondrocyteCount">1000</div>
+                <div class="stat-label">연골세포 수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ossificationLevel">0</div>
+                <div class="stat-label">골화 진행률 (%)</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFDEAD;"></div>
+                <span><strong>해면골 (Trabecular Bone)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8B4513;"></div>
+                <span><strong>피질골 (Cortical Bone)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #87CEEB;"></div>
+                <span><strong>연골 (Cartilage)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFB6C1;"></div>
+                <span><strong>연골세포 (Chondrocytes)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF0000;"></div>
+                <span><strong>혈관 (Blood Vessels)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFD700;"></div>
+                <span><strong>성장판 (Growth Plate)</strong></span>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>📖 뼈 성장 메커니즘</h3>
+            <p>
+                <strong>1. 연골세포 증식 (Proliferation):</strong> 성장판의 연골세포가 활발히 분열하여 10-20개의 열을 형성합니다.
+            </p>
+            <p>
+                <strong>2. 세포 비대 (Hypertrophy):</strong> 연골세포가 크기를 증가시켜 뼈를 길이 방향으로 밀어냅니다.
+            </p>
+            <p>
+                <strong>3. 기질 석회화 (Matrix Calcification):</strong> 연골 기질이 칼슘과 인산염으로 무기질화됩니다.
+            </p>
+            <p>
+                <strong>4. 혈관 침입 (Vascular Invasion):</strong> 혈관이 신경, 골모세포와 함께 침입하여 새로운 뼈 조직을 형성합니다.
+            </p>
+            <p>
+                <strong>5. 골화 완성 (Ossification):</strong> 연골이 완전한 뼈 조직으로 치환되며, 성장이 완료되면 성장판이 닫힙니다.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Canvas 설정
+        const boneCanvas = document.getElementById('boneCanvas');
+        const boneCtx = boneCanvas.getContext('2d');
+        const growthCanvas = document.getElementById('growthPlateCanvas');
+        const growthCtx = growthCanvas.getContext('2d');
+        
+        // 상태 변수들
+        let growthAnimationId = null;
+        let currentStage = 0;
+        let boneLength = 100;
+        let chondrocyteCount = 1000;
+        let ossificationLevel = 0;
+        let animationFrame = 0;
+        
+        // 초기화 함수
+        function init() {
+            drawLongBone();
+            drawGrowthPlateDetail();
+        }
+        
+        // 긴뼈 구조 그리기
+        function drawLongBone() {
+            boneCtx.clearRect(0, 0, boneCanvas.width, boneCanvas.height);
+            
+            const centerX = boneCanvas.width / 2;
+            const boneWidth = 80;
+            const epiphysisRadius = 100;
+            
+            // 골단 (Epiphysis) - 위
+            boneCtx.fillStyle = '#FFDEAD';
+            boneCtx.beginPath();
+            boneCtx.arc(centerX, 80, epiphysisRadius, 0, Math.PI * 2);
+            boneCtx.fill();
+            boneCtx.strokeStyle = '#8B4513';
+            boneCtx.lineWidth = 3;
+            boneCtx.stroke();
+            
+            // 해면골 패턴 그리기
+            drawTrabecularPattern(centerX, 80, epiphysisRadius - 20);
+            
+            // 성장판 (Growth Plate)
+            boneCtx.fillStyle = '#FFD700';
+            boneCtx.fillRect(centerX - epiphysisRadius, 160, epiphysisRadius * 2, 20);
+            
+            // 골간단 (Metaphysis)
+            boneCtx.fillStyle = '#D2691E';
+            boneCtx.beginPath();
+            boneCtx.moveTo(centerX - epiphysisRadius, 180);
+            boneCtx.lineTo(centerX - boneWidth/2, 250);
+            boneCtx.lineTo(centerX + boneWidth/2, 250);
+            boneCtx.lineTo(centerX + epiphysisRadius, 180);
+            boneCtx.closePath();
+            boneCtx.fill();
+            boneCtx.stroke();
+            
+            // 골간 (Diaphysis)
+            const diaphysisLength = 150 + boneLength;
+            boneCtx.fillStyle = '#8B4513';
+            boneCtx.fillRect(centerX - boneWidth/2, 250, boneWidth, diaphysisLength);
+            
+            // 수질강 (Medullary Cavity)
+            boneCtx.fillStyle = '#FFFFE0';
+            boneCtx.fillRect(centerX - boneWidth/2 + 10, 260, boneWidth - 20, diaphysisLength - 20);
+            
+            // 하부 골간단
+            const bottomMetaphysisY = 250 + diaphysisLength;
+            boneCtx.fillStyle = '#D2691E';
+            boneCtx.beginPath();
+            boneCtx.moveTo(centerX - boneWidth/2, bottomMetaphysisY);
+            boneCtx.lineTo(centerX - epiphysisRadius, bottomMetaphysisY + 70);
+            boneCtx.lineTo(centerX + epiphysisRadius, bottomMetaphysisY + 70);
+            boneCtx.lineTo(centerX + boneWidth/2, bottomMetaphysisY);
+            boneCtx.closePath();
+            boneCtx.fill();
+            boneCtx.stroke();
+            
+            // 하부 성장판
+            boneCtx.fillStyle = '#FFD700';
+            boneCtx.fillRect(centerX - epiphysisRadius, bottomMetaphysisY + 70, epiphysisRadius * 2, 20);
+            
+            // 골단 (Epiphysis) - 아래
+            boneCtx.fillStyle = '#FFDEAD';
+            boneCtx.beginPath();
+            boneCtx.arc(centerX, bottomMetaphysisY + 140, epiphysisRadius, 0, Math.PI * 2);
+            boneCtx.fill();
+            boneCtx.stroke();
+            
+            // 해면골 패턴
+            drawTrabecularPattern(centerX, bottomMetaphysisY + 140, epiphysisRadius - 20);
+            
+            // 라벨 추가
+            boneCtx.fillStyle = '#000';
+            boneCtx.font = 'bold 14px Arial';
+            boneCtx.fillText('골단 (Epiphysis)', centerX - 50, 30);
+            boneCtx.fillText('성장판', centerX - 25, 175);
+            boneCtx.fillText('골간단', centerX + 90, 215);
+            boneCtx.fillText('골간 (Diaphysis)', centerX + 50, 350);
+        }
+        
+        // 해면골 패턴 그리기
+        function drawTrabecularPattern(centerX, centerY, radius) {
+            boneCtx.strokeStyle = '#CD853F';
+            boneCtx.lineWidth = 1;
+            
+            // 방사형 패턴
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 / 8) * i;
+                for (let r = 20; r < radius; r += 20) {
+                    const x = centerX + Math.cos(angle) * r;
+                    const y = centerY + Math.sin(angle) * r;
+                    boneCtx.beginPath();
+                    boneCtx.arc(x, y, 8, 0, Math.PI * 2);
+                    boneCtx.stroke();
+                }
+            }
+        }
+        
+        // 성장판 상세 그리기
+        function drawGrowthPlateDetail() {
+            growthCtx.clearRect(0, 0, growthCanvas.width, growthCanvas.height);
+            
+            const plateX = 50;
+            const plateY = 50;
+            const plateWidth = 400;
+            const plateHeight = 500;
+            
+            // 배경
+            growthCtx.fillStyle = '#F0F8FF';
+            growthCtx.fillRect(plateX, plateY, plateWidth, plateHeight);
+            
+            // 구역별 그리기
+            const zones = [
+                { name: '휴지대 (Resting Zone)', color: '#E6E6FA', height: 80 },
+                { name: '증식대 (Proliferative Zone)', color: '#FFB6C1', height: 120 },
+                { name: '비대대 (Hypertrophic Zone)', color: '#FFA07A', height: 100 },
+                { name: '석회화대 (Calcification Zone)', color: '#FFD700', height: 80 },
+                { name: '골화대 (Ossification Zone)', color: '#DEB887', height: 120 }
+            ];
+            
+            let currentY = plateY;
+            zones.forEach((zone, index) => {
+                // 구역 그리기
+                growthCtx.fillStyle = zone.color;
+                growthCtx.fillRect(plateX, currentY, plateWidth, zone.height);
+                
+                // 연골세포 그리기
+                drawChondrocytesInZone(plateX, currentY, plateWidth, zone.height, index);
+                
+                // 라벨
+                growthCtx.fillStyle = '#000';
+                growthCtx.font = 'bold 12px Arial';
+                growthCtx.fillText(zone.name, plateX + 5, currentY + 20);
+                
+                currentY += zone.height;
+            });
+            
+            // 혈관 그리기
+            if (ossificationLevel > 50) {
+                drawBloodVessels(plateX, plateY + 400, plateWidth);
+            }
+        }
+        
+        // 연골세포 그리기
+        function drawChondrocytesInZone(x, y, width, height, zoneIndex) {
+            growthCtx.strokeStyle = '#8B008B';
+            growthCtx.lineWidth = 2;
+            
+            const cellSize = [15, 20, 30, 25, 20][zoneIndex];
+            const cols = Math.floor(width / (cellSize * 2));
+            const rows = Math.floor(height / (cellSize * 2));
+            
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cellX = x + j * cellSize * 2 + cellSize + (i % 2) * cellSize;
+                    const cellY = y + i * cellSize * 2 + cellSize;
+                    
+                    // 세포 모양 변화
+                    if (zoneIndex === 0) {
+                        // 휴지대 - 작고 원형
+                        growthCtx.beginPath();
+                        growthCtx.arc(cellX, cellY, cellSize/2, 0, Math.PI * 2);
+                    } else if (zoneIndex === 1) {
+                        // 증식대 - 납작한 타원
+                        growthCtx.beginPath();
+                        growthCtx.ellipse(cellX, cellY, cellSize/2, cellSize/3, 0, 0, Math.PI * 2);
+                    } else if (zoneIndex === 2) {
+                        // 비대대 - 큰 원형
+                        growthCtx.beginPath();
+                        growthCtx.arc(cellX, cellY, cellSize/1.5, 0, Math.PI * 2);
+                    } else {
+                        // 석회화/골화대 - 불규칙
+                        growthCtx.beginPath();
+                        growthCtx.arc(cellX, cellY, cellSize/2, 0, Math.PI * 2);
+                    }
+                    
+                    growthCtx.stroke();
+                    
+                    // 핵 그리기
+                    growthCtx.fillStyle = '#4B0082';
+                    growthCtx.beginPath();
+                    growthCtx.arc(cellX, cellY, cellSize/4, 0, Math.PI * 2);
+                    growthCtx.fill();
+                }
+            }
+        }
+        
+        // 혈관 그리기
+        function drawBloodVessels(x, y, width) {
+            growthCtx.strokeStyle = '#FF0000';
+            growthCtx.lineWidth = 3;
+            
+            for (let i = 0; i < 5; i++) {
+                const vesselX = x + (width / 6) * (i + 1);
+                growthCtx.beginPath();
+                growthCtx.moveTo(vesselX, y + 100);
+                growthCtx.lineTo(vesselX, y);
+                growthCtx.lineTo(vesselX - 10, y - 20);
+                growthCtx.moveTo(vesselX, y);
+                growthCtx.lineTo(vesselX + 10, y - 20);
+                growthCtx.stroke();
+            }
+        }
+        
+        // 성장 애니메이션
+        function startGrowthAnimation() {
+            if (growthAnimationId) {
+                cancelAnimationFrame(growthAnimationId);
+                growthAnimationId = null;
+                return;
+            }
+            
+            function animate() {
+                animationFrame++;
+                
+                // 성장 단계 업데이트
+                if (animationFrame % 60 === 0) {
+                    currentStage = (currentStage + 1) % 5;
+                    updateStageIndicator();
+                    
+                    // 통계 업데이트
+                    boneLength += 2;
+                    chondrocyteCount += Math.floor(Math.random() * 100);
+                    ossificationLevel = Math.min(100, ossificationLevel + 5);
+                    
+                    updateStats();
+                }
+                
+                // 다시 그리기
+                drawLongBone();
+                drawGrowthPlateDetail();
+                
+                // 성장 효과 표시
+                if (animationFrame % 20 === 0) {
+                    showGrowthEffect();
+                }
+                
+                growthAnimationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+        
+        // 연골세포 활동 표시
+        function showChondrocyteActivity() {
+            drawGrowthPlateDetail();
+            
+            // 연골세포 분열 애니메이션
+            growthCtx.strokeStyle = '#FF00FF';
+            growthCtx.lineWidth = 3;
+            
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const x = 50 + Math.random() * 400;
+                    const y = 170 + Math.random() * 100;
+                    
+                    growthCtx.beginPath();
+                    growthCtx.arc(x, y, 20, 0, Math.PI * 2);
+                    growthCtx.stroke();
+                    
+                    growthCtx.beginPath();
+                    growthCtx.arc(x - 10, y, 15, 0, Math.PI * 2);
+                    growthCtx.stroke();
+                    
+                    growthCtx.beginPath();
+                    growthCtx.arc(x + 10, y, 15, 0, Math.PI * 2);
+                    growthCtx.stroke();
+                }, i * 200);
+            }
+        }
+        
+        // 골화 과정 표시
+        function showOssification() {
+            drawGrowthPlateDetail();
+            
+            // 골화 진행 애니메이션
+            const gradient = growthCtx.createLinearGradient(50, 350, 450, 550);
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(210, 180, 140, 0.5)');
+            gradient.addColorStop(1, 'rgba(139, 69, 19, 0.7)');
+            
+            growthCtx.fillStyle = gradient;
+            growthCtx.fillRect(50, 350, 400, 200);
+            
+            ossificationLevel = Math.min(100, ossificationLevel + 10);
+            updateStats();
+        }
+        
+        // 혈관 침입 표시
+        function showBloodVesselInvasion() {
+            drawGrowthPlateDetail();
+            
+            // 혈관 침입 애니메이션
+            growthCtx.strokeStyle = '#FF0000';
+            growthCtx.lineWidth = 2;
+            
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const x = 100 + i * 50;
+                    growthCtx.beginPath();
+                    growthCtx.moveTo(x, 550);
+                    
+                    for (let y = 550; y > 400; y -= 10) {
+                        growthCtx.lineTo(x + Math.random() * 10 - 5, y);
+                    }
+                    
+                    growthCtx.stroke();
+                    
+                    // 분지 그리기
+                    growthCtx.beginPath();
+                    growthCtx.moveTo(x, 450);
+                    growthCtx.lineTo(x - 20, 430);
+                    growthCtx.moveTo(x, 450);
+                    growthCtx.lineTo(x + 20, 430);
+                    growthCtx.stroke();
+                }, i * 150);
+            }
+        }
+        
+        // 성장 효과 표시
+        function showGrowthEffect() {
+            boneCtx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+            boneCtx.lineWidth = 5;
+            boneCtx.setLineDash([10, 5]);
+            
+            const centerX = boneCanvas.width / 2;
+            boneCtx.beginPath();
+            boneCtx.moveTo(centerX - 100, 160);
+            boneCtx.lineTo(centerX + 100, 160);
+            boneCtx.moveTo(centerX - 100, 180);
+            boneCtx.lineTo(centerX + 100, 180);
+            boneCtx.stroke();
+            
+            boneCtx.setLineDash([]);
+        }
+        
+        // 단계 표시기 업데이트
+        function updateStageIndicator() {
+            const dots = document.querySelectorAll('.stage-dot');
+            dots.forEach((dot, index) => {
+                if (index === currentStage) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+        
+        // 통계 업데이트
+        function updateStats() {
+            document.getElementById('boneLength').textContent = boneLength;
+            document.getElementById('growthRate').textContent = (Math.random() * 0.5 + 0.1).toFixed(1);
+            document.getElementById('chondrocyteCount').textContent = chondrocyteCount;
+            document.getElementById('ossificationLevel').textContent = ossificationLevel;
+        }
+        
+        // 초기화
+        function resetView() {
+            if (growthAnimationId) {
+                cancelAnimationFrame(growthAnimationId);
+                growthAnimationId = null;
+            }
+            
+            boneLength = 100;
+            chondrocyteCount = 1000;
+            ossificationLevel = 0;
+            currentStage = 0;
+            animationFrame = 0;
+            
+            updateStageIndicator();
+            updateStats();
+            init();
+        }
+        
+        // 페이지 로드 시 초기화
+        init();
+        updateStats();
+    </script>
+</body>
+</html>
