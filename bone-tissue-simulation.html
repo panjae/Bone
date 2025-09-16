@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골 조직 구조 시뮬레이션</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        button.active {
+            transform: scale(0.95);
+            opacity: 0.9;
+        }
+        
+        .canvas-container {
+            position: relative;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        canvas {
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: white;
+        }
+        
+        .info-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .info-panel.active {
+            display: block;
+        }
+        
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+        
+        .info-panel p {
+            color: #555;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        @keyframes flow {
+            from { transform: translateX(0); }
+            to { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦴 골 조직 구조 인터랙티브 시뮬레이션</h1>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="showHaversianSystem()">하버시안 시스템</button>
+            <button class="btn-secondary" onclick="showOsteocyteNetwork()">골세포 네트워크</button>
+            <button class="btn-info" onclick="animateFluidFlow()">체액 흐름 애니메이션</button>
+            <button class="btn-primary" onclick="toggleZoom()">확대/축소</button>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="boneCanvas" width="900" height="600"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8B4513;"></div>
+                <span><strong>치밀골 (Compact Bone)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF0000;"></div>
+                <span><strong>혈관 (Blood Vessels)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4169E1;"></div>
+                <span><strong>골세포 (Osteocytes)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFD700;"></div>
+                <span><strong>소관 (Canaliculi)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00CED1;"></div>
+                <span><strong>세포외액 (ECF)</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFA500;"></div>
+                <span><strong>골막 (Periosteum)</strong></span>
+            </div>
+        </div>
+        
+        <div id="haversianInfo" class="info-panel">
+            <h3>📍 하버시안 시스템 (Haversian System)</h3>
+            <p>
+                하버시안 시스템은 치밀골의 기본 구조 단위입니다. 중앙의 하버시안관을 통해 혈관이 지나가며, 
+                동심원 형태의 라멜라(골판)가 둘러싸고 있습니다. 볼크만관은 하버시안관들을 수직으로 연결하여 
+                혈액 공급 네트워크를 형성합니다. 각 하버시안 시스템은 직경이 약 200-250 μm입니다.
+            </p>
+        </div>
+        
+        <div id="osteocyteInfo" class="info-panel">
+            <h3>📍 골세포 네트워크 (Osteocyte Network)</h3>
+            <p>
+                골세포는 라쿠나(lacunae)라는 작은 공간(10-20 μm)에 위치하며, 소관(canaliculi)을 통해 
+                서로 연결되어 있습니다. 이 네트워크는 골 조직의 스트레스를 감지하고 모니터링하는 
+                센서 시스템 역할을 합니다. 골세포는 갭 정션을 통해 서로 소통하며, 
+                골 내막 세포는 골세포와 외부 환경 사이의 인터페이스 역할을 합니다.
+            </p>
+        </div>
+        
+        <div id="fluidInfo" class="info-panel">
+            <h3>📍 세포외액 흐름 (ECF Flow)</h3>
+            <p>
+                직경 0.5 μm 미만의 소관을 통해 세포외액이 흐르며, 이는 혈관계의 수압에 의해 구동됩니다. 
+                이 흐름은 산소와 영양분을 골세포로 운반하고, 노폐물을 제거합니다. 
+                골 변형 시 ECF 흐름 속도가 변화하며, 골세포는 이를 감지하여 
+                골 조직의 스트레스 레벨을 모니터링합니다.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('boneCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let currentView = 'haversian';
+        let animationId = null;
+        let flowAnimation = false;
+        let flowOffset = 0;
+        let zoomLevel = 1;
+        let isZoomed = false;
+        
+        // 초기 그리기
+        drawHaversianSystem();
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        function drawHaversianSystem() {
+            clearCanvas();
+            currentView = 'haversian';
+            hideAllInfoPanels();
+            document.getElementById('haversianInfo').classList.add('active');
+            
+            ctx.save();
+            ctx.scale(zoomLevel, zoomLevel);
+            
+            // 배경 - 치밀골
+            ctx.fillStyle = '#D2691E';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 하버시안 시스템 그리기 (여러 개)
+            const systems = [
+                {x: 250, y: 200, size: 120},
+                {x: 450, y: 250, size: 140},
+                {x: 650, y: 180, size: 110},
+                {x: 350, y: 400, size: 130},
+                {x: 550, y: 380, size: 115}
+            ];
+            
+            systems.forEach(system => {
+                drawSingleHaversianSystem(system.x, system.y, system.size);
+            });
+            
+            // 볼크만관 그리기
+            ctx.strokeStyle = '#8B0000';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(250, 200);
+            ctx.lineTo(450, 250);
+            ctx.moveTo(450, 250);
+            ctx.lineTo(650, 180);
+            ctx.moveTo(350, 400);
+            ctx.lineTo(550, 380);
+            ctx.stroke();
+            
+            // 골막 그리기
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, 30);
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('골막 (Periosteum)', 10, 20);
+            
+            ctx.restore();
+        }
+        
+        function drawSingleHaversianSystem(centerX, centerY, maxRadius) {
+            // 동심원 라멜라 그리기
+            const layers = 6;
+            for (let i = layers; i > 0; i--) {
+                const radius = (maxRadius / layers) * i;
+                
+                // 라멜라 색상 교차
+                ctx.fillStyle = i % 2 === 0 ? '#CD853F' : '#8B4513';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 라멜라 경계선
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // 중앙 하버시안관 (혈관)
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 골세포 그리기
+            const osteocytes = 8;
+            for (let i = 0; i < osteocytes; i++) {
+                const angle = (Math.PI * 2 / osteocytes) * i;
+                const distance = maxRadius * 0.6;
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+                
+                // 골세포
+                ctx.fillStyle = '#4169E1';
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 소관 연결
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+            
+            // 라벨
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.fillText('하버시안관', centerX - 35, centerY + 4);
+        }
+        
+        function showOsteocyteNetwork() {
+            clearCanvas();
+            currentView = 'osteocyte';
+            hideAllInfoPanels();
+            document.getElementById('osteocyteInfo').classList.add('active');
+            
+            ctx.save();
+            ctx.scale(zoomLevel, zoomLevel);
+            
+            // 배경
+            ctx.fillStyle = '#F5DEB3';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 골세포 네트워크 그리기
+            const osteocytePositions = [];
+            const rows = 5;
+            const cols = 7;
+            const spacing = 120;
+            const startX = 100;
+            const startY = 80;
+            
+            // 골세포 위치 생성 및 그리기
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const x = startX + j * spacing + (i % 2) * 40;
+                    const y = startY + i * spacing;
+                    osteocytePositions.push({x, y});
+                    
+                    // 라쿠나 (골세포 공간)
+                    ctx.fillStyle = '#E0E0E0';
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 25, 20, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 골세포
+                    ctx.fillStyle = '#4169E1';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 핵
+                    ctx.fillStyle = '#00008B';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // 소관 네트워크 그리기
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            osteocytePositions.forEach((pos, index) => {
+                // 인접한 골세포와 연결
+                if (index % cols !== cols - 1) {
+                    // 오른쪽 연결
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x + 12, pos.y);
+                    ctx.lineTo(pos.x + spacing - 12, pos.y);
+                    ctx.stroke();
+                }
+                if (index < osteocytePositions.length - cols) {
+                    // 아래쪽 연결
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y + 12);
+                    ctx.lineTo(pos.x, pos.y + spacing - 12);
+                    ctx.stroke();
+                    
+                    // 대각선 연결
+                    if (index % cols !== cols - 1) {
+                        ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x + 8, pos.y + 8);
+                        ctx.lineTo(pos.x + spacing - 8, pos.y + spacing - 8);
+                        ctx.stroke();
+                        ctx.strokeStyle = '#FFD700';
+                    }
+                }
+            });
+            
+            // 골 내막 세포층
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.6)';
+            ctx.fillRect(0, 0, canvas.width, 40);
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('골 내막 세포층 (Bone Lining Cells)', 10, 25);
+            
+            // 라벨
+            ctx.font = '14px Arial';
+            ctx.fillText('골세포 (Osteocytes)', osteocytePositions[0].x - 20, osteocytePositions[0].y - 30);
+            ctx.fillText('소관 (Canaliculi)', osteocytePositions[3].x + 30, osteocytePositions[3].y);
+            
+            ctx.restore();
+        }
+        
+        function animateFluidFlow() {
+            if (flowAnimation) {
+                flowAnimation = false;
+                return;
+            }
+            
+            flowAnimation = true;
+            hideAllInfoPanels();
+            document.getElementById('fluidInfo').classList.add('active');
+            
+            function drawFlow() {
+                if (!flowAnimation) return;
+                
+                if (currentView === 'haversian') {
+                    drawHaversianSystem();
+                } else {
+                    showOsteocyteNetwork();
+                }
+                
+                ctx.save();
+                ctx.scale(zoomLevel, zoomLevel);
+                
+                // 체액 흐름 표시
+                ctx.strokeStyle = 'rgba(0, 206, 209, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 5]);
+                ctx.lineDashOffset = -flowOffset;
+                
+                if (currentView === 'haversian') {
+                    // 하버시안관 내 흐름
+                    ctx.beginPath();
+                    ctx.arc(250, 200, 50, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(450, 250, 60, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(650, 180, 45, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // 소관 내 흐름
+                    for (let i = 100; i < canvas.width; i += 120) {
+                        for (let j = 80; j < canvas.height; j += 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(i, j);
+                            ctx.lineTo(i + 100, j);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(i, j);
+                            ctx.lineTo(i, j + 100);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                
+                ctx.setLineDash([]);
+                
+                // 영양분 입자 애니메이션
+                const particles = 15;
+                for (let i = 0; i < particles; i++) {
+                    const x = (flowOffset * 2 + i * 60) % canvas.width;
+                    const y = 200 + Math.sin((flowOffset + i * 30) * 0.05) * 100;
+                    
+                    // O2 입자
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillText('O₂', x - 8, y - 8);
+                    
+                    // 영양분 입자
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(x + 20, y + 10, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+                
+                flowOffset += 2;
+                animationId = requestAnimationFrame(drawFlow);
+            }
+            
+            drawFlow();
+        }
+        
+        function showHaversianSystem() {
+            flowAnimation = false;
+            drawHaversianSystem();
+        }
+        
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            zoomLevel = isZoomed ? 1.5 : 1;
+            
+            if (currentView === 'haversian') {
+                drawHaversianSystem();
+            } else {
+                showOsteocyteNetwork();
+            }
+        }
+        
+        function hideAllInfoPanels() {
+            document.querySelectorAll('.info-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+        }
+        
+        // 마우스 호버 이벤트
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // 커서 변경
+            canvas.style.cursor = 'crosshair';
+        });
+    </script>
+</body>
+</html>
