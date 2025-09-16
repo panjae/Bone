@@ -1,0 +1,854 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골조직 구조 및 재형성 시뮬레이션</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        min-height: 100vh;
+        color: #2c3e50;
+        padding: 20px;
+    }
+    
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
+    
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .header h1 {
+        font-size: 2.5em;
+        color: #1e3c72;
+        margin-bottom: 10px;
+        font-weight: 300;
+        letter-spacing: -0.5px;
+    }
+    
+    .header p {
+        font-size: 1.1em;
+        color: #6c757d;
+        font-weight: 300;
+    }
+    
+    .view-selector {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .view-btn {
+        padding: 12px 25px;
+        border: 2px solid #1e3c72;
+        background: white;
+        color: #1e3c72;
+        border-radius: 8px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+    }
+    
+    .view-btn:hover {
+        background: #1e3c72;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30,60,114,0.2);
+    }
+    
+    .view-btn.active {
+        background: #1e3c72;
+        color: white;
+    }
+    
+    .simulation-container {
+        position: relative;
+        background: #fafbfc;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        min-height: 600px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .view-content {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    .view-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Haversian System View */
+    .haversian-system {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .osteon-container {
+        position: relative;
+        width: 400px;
+        height: 400px;
+    }
+    
+    .osteon-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid #6c757d;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+    }
+    
+    .ring1 { width: 100%; height: 100%; top: 0; left: 0; border-color: #dee2e6; }
+    .ring2 { width: 85%; height: 85%; top: 7.5%; left: 7.5%; border-color: #ced4da; }
+    .ring3 { width: 70%; height: 70%; top: 15%; left: 15%; border-color: #adb5bd; }
+    .ring4 { width: 55%; height: 55%; top: 22.5%; left: 22.5%; border-color: #6c757d; }
+    .ring5 { width: 40%; height: 40%; top: 30%; left: 30%; border-color: #495057; }
+    
+    .haversian-canal {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.9em;
+        box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+    }
+    
+    .osteocyte {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(52,152,219,0.3);
+    }
+    
+    .canaliculus {
+        position: absolute;
+        height: 1px;
+        background: #3498db;
+        opacity: 0.5;
+        transform-origin: left center;
+    }
+    
+    .volkmann-canal {
+        position: absolute;
+        width: 30px;
+        height: 4px;
+        background: linear-gradient(90deg, #e74c3c, transparent);
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .volkmann1 { left: 60px; }
+    .volkmann2 { right: 60px; transform: translateY(-50%) rotate(180deg); }
+    
+    /* Bone Types View */
+    .bone-types {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        padding: 20px;
+    }
+    
+    .bone-type-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .bone-type-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        border-color: #1e3c72;
+    }
+    
+    .bone-type-visual {
+        width: 100%;
+        height: 150px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3em;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .compact-visual {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    }
+    
+    .trabecular-visual {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        position: relative;
+    }
+    
+    .trabecular-holes {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 50%;
+    }
+    
+    .woven-visual {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    }
+    
+    .woven-fibers {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: rgba(255,255,255,0.3);
+    }
+    
+    /* Remodeling Process */
+    .remodeling-process {
+        padding: 20px;
+    }
+    
+    .process-timeline {
+        position: relative;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .process-step {
+        position: relative;
+        padding: 30px;
+        margin-bottom: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-left: 4px solid #1e3c72;
+        transition: all 0.3s;
+    }
+    
+    .process-step:hover {
+        transform: translateX(10px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    
+    .step-number {
+        position: absolute;
+        left: -20px;
+        top: 30px;
+        width: 40px;
+        height: 40px;
+        background: #1e3c72;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .step-title {
+        font-size: 1.3em;
+        color: #1e3c72;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+    
+    .step-description {
+        color: #6c757d;
+        line-height: 1.6;
+    }
+    
+    .cell-icon {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin: 0 5px;
+    }
+    
+    .icon-osteocyte { background: #3498db; }
+    .icon-osteoclast { background: #e74c3c; }
+    .icon-osteoblast { background: #27ae60; }
+    
+    /* Control Panel */
+    .control-panel {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 30px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .control-title {
+        font-size: 1.2em;
+        color: #1e3c72;
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+    
+    .control-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .control-btn {
+        padding: 10px 20px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.95em;
+    }
+    
+    .control-btn:hover {
+        background: #1e3c72;
+        color: white;
+        border-color: #1e3c72;
+    }
+    
+    /* Info Cards */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .info-card-title {
+        font-size: 1.1em;
+        color: #1e3c72;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+    
+    .info-card-content {
+        color: #6c757d;
+        line-height: 1.5;
+        font-size: 0.95em;
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.2); opacity: 1; }
+    }
+    
+    @keyframes flow {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .pulsing {
+        animation: pulse 2s infinite;
+    }
+    
+    .flowing {
+        animation: flow 3s linear infinite;
+    }
+    
+    /* Legend */
+    .legend {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95em;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .osteon-container {
+            width: 300px;
+            height: 300px;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦴 골조직 구조 및 재형성 시뮬레이션</h1>
+            <p>Bone Tissue Structure and Remodeling Simulation</p>
+        </div>
+        <div class="view-selector">
+            <button class="view-btn active" onclick="showView('haversian')">Haversian System</button>
+            <button class="view-btn" onclick="showView('types')">골조직 유형</button>
+            <button class="view-btn" onclick="showView('remodeling')">재형성 과정</button>
+            <button class="view-btn" onclick="showView('growth')">골 성장</button>
+        </div>
+    
+        <div class="simulation-container">
+            <!-- Haversian System View -->
+            <div id="haversian-view" class="view-content active">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #1e3c72;">Haversian System (골단위)</h2>
+                <div class="haversian-system">
+                    <div class="osteon-container" id="osteonContainer">
+                        <!-- Concentric rings (lamellae) -->
+                        <div class="osteon-ring ring1"></div>
+                        <div class="osteon-ring ring2"></div>
+                        <div class="osteon-ring ring3"></div>
+                        <div class="osteon-ring ring4"></div>
+                        <div class="osteon-ring ring5"></div>
+                        
+                        <!-- Central canal -->
+                        <div class="haversian-canal">혈관</div>
+                        
+                        <!-- Volkmann canals -->
+                        <div class="volkmann-canal volkmann1"></div>
+                        <div class="volkmann-canal volkmann2"></div>
+                        
+                        <!-- Osteocytes will be added dynamically -->
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <div class="control-title">시뮬레이션 제어</div>
+                    <div class="control-buttons">
+                        <button class="control-btn" onclick="showOsteocytes()">골세포 표시</button>
+                        <button class="control-btn" onclick="showCanaliculi()">소관 연결 표시</button>
+                        <button class="control-btn" onclick="showBloodFlow()">혈류 시뮬레이션</button>
+                        <button class="control-btn" onclick="resetHaversian()">초기화</button>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Bone Types View -->
+            <div id="types-view" class="view-content">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #1e3c72;">골조직 유형</h2>
+                <div class="bone-types">
+                    <div class="bone-type-card">
+                        <div class="bone-type-visual compact-visual">
+                            <div style="color: white; font-size: 0.5em; text-align: center;">
+                                <div>치밀골</div>
+                                <div style="font-size: 0.6em; margin-top: 10px;">Compact Bone</div>
+                            </div>
+                        </div>
+                        <h3 style="color: #1e3c72; margin-bottom: 10px;">치밀골 (Compact Bone)</h3>
+                        <p style="color: #6c757d; line-height: 1.6;">
+                            • 매우 밀도가 높고 강도를 위해 구성됨<br>
+                            • 피질골(cortical bone)이라고도 함<br>
+                            • 모든 뼈의 외부에 위치<br>
+                            • Haversian system으로 구성
+                        </p>
+                    </div>
+    
+                    <div class="bone-type-card">
+                        <div class="bone-type-visual trabecular-visual">
+                            <div class="trabecular-holes" style="top: 20px; left: 30px;"></div>
+                            <div class="trabecular-holes" style="top: 50px; right: 40px;"></div>
+                            <div class="trabecular-holes" style="bottom: 30px; left: 50px;"></div>
+                            <div class="trabecular-holes" style="top: 30px; right: 30px;"></div>
+                            <div class="trabecular-holes" style="bottom: 20px; right: 50px;"></div>
+                            <div style="color: white; font-size: 0.5em; text-align: center; z-index: 1;">
+                                <div>해면골</div>
+                                <div style="font-size: 0.6em; margin-top: 10px;">Trabecular Bone</div>
+                            </div>
+                        </div>
+                        <h3 style="color: #1e3c72; margin-bottom: 10px;">해면골 (Trabecular Bone)</h3>
+                        <p style="color: #6c757d; line-height: 1.6;">
+                            • 스폰지 구조로 높은 표면적<br>
+                            • 골수강 중심부에 위치<br>
+                            • Ca²⁺ 저장 및 방출의 주요 부위<br>
+                            • 척추에서 중요한 기계적 지지
+                        </p>
+                    </div>
+    
+                    <div class="bone-type-card">
+                        <div class="bone-type-visual woven-visual">
+                            <div class="woven-fibers" style="top: 30px; transform: rotate(45deg);"></div>
+                            <div class="woven-fibers" style="top: 60px; transform: rotate(-30deg);"></div>
+                            <div class="woven-fibers" style="bottom: 40px; transform: rotate(60deg);"></div>
+                            <div class="woven-fibers" style="bottom: 70px; transform: rotate(-45deg);"></div>
+                            <div style="color: white; font-size: 0.5em; text-align: center; z-index: 1;">
+                                <div>편직골</div>
+                                <div style="font-size: 0.6em; margin-top: 10px;">Woven Bone</div>
+                            </div>
+                        </div>
+                        <h3 style="color: #1e3c72; margin-bottom: 10px;">편직골 (Woven Bone)</h3>
+                        <p style="color: #6c757d; line-height: 1.6;">
+                            • 콜라겐 섬유가 무작위로 배열<br>
+                            • 빠른 치유를 위한 임시 구조<br>
+                            • 모든 방향의 스트레스에 저항<br>
+                            • 시간이 지나면 층판골로 교체
+                        </p>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Remodeling Process View -->
+            <div id="remodeling-view" class="view-content">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #1e3c72;">골 재형성 과정 (BMU)</h2>
+                <div class="remodeling-process">
+                    <div class="process-timeline">
+                        <div class="process-step">
+                            <div class="step-number">1</div>
+                            <div class="step-title">미세손상 감지</div>
+                            <div class="step-description">
+                                <span class="cell-icon icon-osteocyte"></span>골세포(Osteocytes)가 미세균열이나 손상을 감지합니다. 
+                                기계적 스트레스나 노화로 인한 손상을 canaliculi 네트워크를 통해 감지합니다.
+                            </div>
+                        </div>
+    
+                        <div class="process-step">
+                            <div class="step-number">2</div>
+                            <div class="step-title">신호 전달</div>
+                            <div class="step-description">
+                                골세포가 골내막세포(Bone lining cells)에게 신호를 보냅니다. 
+                                이들은 재형성이 필요한 부위를 준비합니다.
+                            </div>
+                        </div>
+    
+                        <div class="process-step">
+                            <div class="step-number">3</div>
+                            <div class="step-title">파골세포 활성화</div>
+                            <div class="step-description">
+                                <span class="cell-icon icon-osteoclast"></span>파골세포(Osteoclasts)가 모집되어 
+                                손상된 골조직을 흡수합니다. 산성 환경을 만들어 미네랄을 용해시킵니다.
+                            </div>
+                        </div>
+    
+                        <div class="process-step">
+                            <div class="step-number">4</div>
+                            <div class="step-title">조골세포 활성화</div>
+                            <div class="step-description">
+                                <span class="cell-icon icon-osteoblast"></span>조골세포(Osteoblasts)가 유인되어 
+                                새로운 골기질(osteoid)을 분비합니다.
+                            </div>
+                        </div>
+    
+                        <div class="process-step">
+                            <div class="step-number">5</div>
+                            <div class="step-title">광물화</div>
+                            <div class="step-description">
+                                새로운 골기질이 칼슘과 인산염으로 광물화되어 
+                                성숙한 골조직이 형성됩니다. 일부 조골세포는 골세포로 변환됩니다.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-title">재형성 유발 요인</div>
+                        <div class="info-card-content">
+                            • 기계적 스트레스<br>
+                            • 미세손상 축적<br>
+                            • 호르몬 변화 (PTH, Calcitonin)<br>
+                            • 칼슘/인산염 항상성
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-title">재형성 주기</div>
+                        <div class="info-card-content">
+                            • 젊은 성인: 연간 약 20%<br>
+                            • 노인: 연간 1-4%<br>
+                            • 완전한 주기: 3-6개월<br>
+                            • 지속적인 과정
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Growth View -->
+            <div id="growth-view" class="view-content">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #1e3c72;">골 성장 과정</h2>
+                <div style="max-width: 600px; margin: 0 auto;">
+                    <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <h3 style="color: #1e3c72; margin-bottom: 20px;">성장판 (Growth Plate)</h3>
+                        <div style="position: relative; height: 400px; background: linear-gradient(to bottom, #f8f9fa, #e9ecef, #f8f9fa); border-radius: 8px; padding: 20px;">
+                            <div style="position: absolute; top: 10%; left: 50%; transform: translateX(-50%); text-align: center;">
+                                <div style="background: #e74c3c; color: white; padding: 10px 20px; border-radius: 6px; margin-bottom: 10px;">
+                                    증식대 (Proliferation Zone)
+                                </div>
+                                <p style="font-size: 0.9em; color: #6c757d;">연골세포가 빠르게 분열</p>
+                            </div>
+                            
+                            <div style="position: absolute; top: 35%; left: 50%; transform: translateX(-50%); text-align: center;">
+                                <div style="background: #f39c12; color: white; padding: 10px 20px; border-radius: 6px; margin-bottom: 10px;">
+                                    비대대 (Hypertrophic Zone)
+                                </div>
+                                <p style="font-size: 0.9em; color: #6c757d;">연골세포 비대 및 기질 분비</p>
+                            </div>
+                            
+                            <div style="position: absolute; top: 60%; left: 50%; transform: translateX(-50%); text-align: center;">
+                                <div style="background: #3498db; color: white; padding: 10px 20px; border-radius: 6px; margin-bottom: 10px;">
+                                    석회화대 (Calcification Zone)
+                                </div>
+                                <p style="font-size: 0.9em; color: #6c757d;">기질 석회화 및 연골세포 사멸</p>
+                            </div>
+                            
+                            <div style="position: absolute; top: 85%; left: 50%; transform: translateX(-50%); text-align: center;">
+                                <div style="background: #27ae60; color: white; padding: 10px 20px; border-radius: 6px; margin-bottom: 10px;">
+                                    골화대 (Ossification Zone)
+                                </div>
+                                <p style="font-size: 0.9em; color: #6c757d;">조골세포에 의한 골 형성</p>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="info-grid" style="margin-top: 30px;">
+                        <div class="info-card">
+                            <div class="info-card-title">연골세포 역할</div>
+                            <div class="info-card-content">
+                                • 10-20개 열로 배열<br>
+                                • 빠른 분열로 길이 성장<br>
+                                • 연골 기질 분비<br>
+                                • 최종적으로 세포사멸
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-card-title">골단 융합</div>
+                            <div class="info-card-content">
+                                • 성장 완료 시 발생<br>
+                                • 성장판 소실<br>
+                                • 골단과 골간 결합<br>
+                                • 영구적 길이 고정
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                <span>혈관 (Blood Vessels)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #3498db, #2980b9);"></div>
+                <span>골세포 (Osteocytes)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #27ae60, #229954);"></div>
+                <span>조골세포 (Osteoblasts)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                <span>파골세포 (Osteoclasts)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d);"></div>
+                <span>골기질 (Bone Matrix)</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // View switching
+        function showView(viewName) {
+            // Remove active class from all views and buttons
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to selected view and button
+            document.getElementById(viewName + '-view').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Haversian System Functions
+        function showOsteocytes() {
+            const container = document.getElementById('osteonContainer');
+            
+            // Clear existing osteocytes
+            const existingOsteocytes = container.querySelectorAll('.osteocyte');
+            existingOsteocytes.forEach(cell => cell.remove());
+            
+            // Add osteocytes in circular patterns
+            const rings = [
+                { radius: 180, count: 12 },
+                { radius: 140, count: 10 },
+                { radius: 100, count: 8 },
+                { radius: 60, count: 6 }
+            ];
+            
+            rings.forEach(ring => {
+                for (let i = 0; i < ring.count; i++) {
+                    const angle = (2 * Math.PI * i) / ring.count;
+                    const x = 200 + ring.radius * Math.cos(angle) - 10;
+                    const y = 200 + ring.radius * Math.sin(angle) - 10;
+                    
+                    const osteocyte = document.createElement('div');
+                    osteocyte.className = 'osteocyte';
+                    osteocyte.style.left = x + 'px';
+                    osteocyte.style.top = y + 'px';
+                    osteocyte.classList.add('pulsing');
+                    
+                    container.appendChild(osteocyte);
+                }
+            });
+        }
+        
+        function showCanaliculi() {
+            const container = document.getElementById('osteonContainer');
+            const osteocytes = container.querySelectorAll('.osteocyte');
+            
+            // Clear existing canaliculi
+            const existingCanaliculi = container.querySelectorAll('.canaliculus');
+            existingCanaliculi.forEach(canal => canal.remove());
+            
+            // Connect osteocytes with canaliculi
+            osteocytes.forEach((cell, index) => {
+                if (index < osteocytes.length - 1) {
+                    const nextCell = osteocytes[index + 1];
+                    
+                    const x1 = parseInt(cell.style.left) + 10;
+                    const y1 = parseInt(cell.style.top) + 10;
+                    const x2 = parseInt(nextCell.style.left) + 10;
+                    const y2 = parseInt(nextCell.style.top) + 10;
+                    
+                    const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+                    
+                    const canaliculus = document.createElement('div');
+                    canaliculus.className = 'canaliculus';
+                    canaliculus.style.left = x1 + 'px';
+                    canaliculus.style.top = y1 + 'px';
+                    canaliculus.style.width = distance + 'px';
+                    canaliculus.style.transform = `rotate(${angle}deg)`;
+                    
+                    container.appendChild(canaliculus);
+                }
+            });
+        }
+        
+        function showBloodFlow() {
+            const canal = document.querySelector('.haversian-canal');
+            canal.classList.add('pulsing');
+            
+            // Add flowing effect to Volkmann canals
+            document.querySelectorAll('.volkmann-canal').forEach(canal => {
+                canal.classList.add('flowing');
+            });
+            
+            setTimeout(() => {
+                canal.classList.remove('pulsing');
+                document.querySelectorAll('.volkmann-canal').forEach(canal => {
+                    canal.classList.remove('flowing');
+                });
+            }, 3000);
+        }
+        
+        function resetHaversian() {
+            const container = document.getElementById('osteonContainer');
+            
+            // Remove all dynamic elements
+            container.querySelectorAll('.osteocyte, .canaliculus').forEach(el => el.remove());
+            
+            // Remove animation classes
+            document.querySelector('.haversian-canal').classList.remove('pulsing');
+            document.querySelectorAll('.volkmann-canal').forEach(canal => {
+                canal.classList.remove('flowing');
+            });
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('골조직 구조 및 재형성 시뮬레이션이 준비되었습니다!');
+            
+            // 초기 상태 설정
+            setTimeout(() => {
+                showOsteocytes();
+            }, 500);
+        });
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case '1':
+                    document.querySelectorAll('.view-btn')[0].click();
+                    break;
+                case '2':
+                    document.querySelectorAll('.view-btn')[1].click();
+                    break;
+                case '3':
+                    document.querySelectorAll('.view-btn')[2].click();
+                    break;
+                case '4':
+                    document.querySelectorAll('.view-btn')[3].click();
+                    break;
+            }
+        });
+    </script>
+    </body>
+    </html>
+    </artifact>
+    </artifacts>
