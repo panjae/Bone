@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골 리모델링 사이클 상세 시뮬레이션</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e3a5f;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(30, 58, 95, 0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a73 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 40px;
+            padding: 40px;
+        }
+        
+        .stages-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .stage-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            cursor: pointer;
+        }
+        
+        .stage-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(30, 58, 95, 0.15);
+        }
+        
+        .stage-card.active {
+            border-color: #1e3a5f;
+            background: white;
+            box-shadow: 0 15px 40px rgba(30, 58, 95, 0.2);
+        }
+        
+        .stage-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .stage-number {
+            width: 40px;
+            height: 40px;
+            background: #1e3a5f;
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin-right: 15px;
+        }
+        
+        .stage-title {
+            flex: 1;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1e3a5f;
+        }
+        
+        .stage-visual {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stage-description {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #1e3a5f;
+        }
+        
+        .stage-description p {
+            color: #495057;
+            line-height: 1.6;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+        
+        .stage-description p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            flex: 0 0 350px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .control-section {
+            margin-bottom: 30px;
+        }
+        
+        .control-section h3 {
+            color: #1e3a5f;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 500;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a73 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        
+        .btn:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.2);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #868e96 100%);
+        }
+        
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        /* Timeline */
+        .timeline {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .timeline-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #1e3a5f 0%, #3498db 100%);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 1s ease;
+        }
+        
+        .timeline-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        /* Cell Visualizations */
+        .bone-surface {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(180deg, #f4e4c1 0%, #d4a574 100%);
+            border-top: 2px solid #c19660;
+        }
+        
+        .bone-lining-cells {
+            position: absolute;
+            bottom: 80px;
+            width: 100%;
+            height: 15px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        
+        .lining-cell {
+            width: 30px;
+            height: 10px;
+            background: #4a69bd;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+        
+        .osteocyte {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #4a69bd;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .osteocyte-network {
+            stroke: #4a69bd;
+            stroke-width: 1;
+            fill: none;
+            opacity: 0.5;
+        }
+        
+        .microfissure {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 60px;
+            background: #dc3545;
+            transform-origin: bottom;
+            transform: translateX(-50%) rotate(15deg);
+        }
+        
+        .osteoclast {
+            position: absolute;
+            width: 60px;
+            height: 50px;
+            background: radial-gradient(circle, #ff6b6b 0%, #e74c3c 100%);
+            border-radius: 30% 70% 70% 30% / 50% 50% 50% 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .osteoclast.active {
+            opacity: 1;
+        }
+        
+        .osteoclast .nucleus {
+            width: 8px;
+            height: 8px;
+            background: darkred;
+            border-radius: 50%;
+            margin: 2px;
+        }
+        
+        .osteoblast {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle, #66bb6a 0%, #27ae60 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .osteoblast.active {
+            opacity: 1;
+        }
+        
+        .ruffled-border {
+            position: absolute;
+            bottom: -10px;
+            width: 100%;
+            height: 20px;
+            background: repeating-linear-gradient(
+                90deg,
+                #e74c3c,
+                #e74c3c 3px,
+                transparent 3px,
+                transparent 6px
+            );
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .ruffled-border.active {
+            opacity: 0.7;
+        }
+        
+        /* Molecules */
+        .molecule {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .molecule.rankl {
+            background: #9b59b6;
+        }
+        
+        .molecule.rank {
+            background: #8e44ad;
+        }
+        
+        .molecule.ca {
+            background: #f39c12;
+        }
+        
+        .molecule.po4 {
+            background: #3498db;
+        }
+        
+        .molecule.active {
+            opacity: 1;
+            animation: float 2s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes resorb {
+            0% { height: 80px; }
+            100% { height: 60px; }
+        }
+        
+        @keyframes deposit {
+            0% { height: 60px; }
+            100% { height: 80px; }
+        }
+        
+        /* Legend */
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .info-box h4 {
+            color: #1e3a5f;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .info-box p {
+            color: #495057;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .control-panel {
+                flex: 1;
+                width: 100%;
+                position: static;
+            }
+            
+            .stages-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦴 골 리모델링 사이클 상세 시뮬레이션</h1>
+            <p>Bone Remodeling Cycle with RANK-RANKL System</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="stages-container">
+                <!-- Stage 1: Signaling Microdamage -->
+                <div class="stage-card" id="stage1" onclick="showStage(1)">
+                    <div class="stage-header">
+                        <div class="stage-number">1</div>
+                        <div class="stage-title">Signaling Microdamage</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Bone surface with lining cells -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            <rect x="0" y="160" width="400" height="10" fill="#4a69bd" opacity="0.3"/>
+                            
+                            <!-- Osteocytes network -->
+                            <circle cx="100" cy="200" r="10" fill="#4a69bd"/>
+                            <circle cx="200" cy="190" r="10" fill="#4a69bd"/>
+                            <circle cx="300" cy="210" r="10" fill="#4a69bd"/>
+                            <circle cx="150" cy="220" r="10" fill="#4a69bd"/>
+                            <circle cx="250" cy="200" r="10" fill="#4a69bd"/>
+                            
+                            <!-- Network connections -->
+                            <line x1="100" y1="200" x2="150" y2="220" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="200" y1="190" x2="250" y2="200" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="200" y1="190" x2="150" y2="220" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="250" y1="200" x2="300" y2="210" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            
+                            <!-- Microfissure -->
+                            <line x1="180" y1="170" x2="220" y2="230" stroke="#dc3545" stroke-width="3"/>
+                            
+                            <!-- Apoptotic osteocyte -->
+                            <circle cx="200" cy="190" r="10" fill="#dc3545" opacity="0.7" class="pulse"/>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                Microfissure
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                Osteocyte Apoptosis
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>미세손상 신호:</strong> 일상적 활동으로 발생한 미세균열</p>
+                        <p>손상 부위의 골세포가 apoptosis 진행</p>
+                        <p>RANKL, Sclerostin 분비 변화로 리모델링 시작</p>
+                    </div>
+                </div>
+                
+                <!-- Stage 2: Activation -->
+                <div class="stage-card" id="stage2" onclick="showStage(2)">
+                    <div class="stage-header">
+                        <div class="stage-number">2</div>
+                        <div class="stage-title">Activation</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Bone surface -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            
+                            <!-- Lifted lining cells -->
+                            <rect x="50" y="150" width="30" height="10" fill="#4a69bd" transform="rotate(-10 65 155)"/>
+                            <rect x="100" y="145" width="30" height="10" fill="#4a69bd" transform="rotate(-15 115 150)"/>
+                            <rect x="150" y="140" width="30" height="10" fill="#4a69bd" transform="rotate(-20 165 145)"/>
+                            
+                            <!-- Exposed surface -->
+                            <rect x="50" y="160" width="130" height="10" fill="#ffd700" opacity="0.5"/>
+                            
+                            <!-- Chemoattractants (arrows) -->
+                            <path d="M 100 160 L 100 120" stroke="#9b59b6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                            <path d="M 130 160 L 130 120" stroke="#9b59b6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                            <path d="M 160 160 L 160 120" stroke="#9b59b6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#9b59b6"/>
+                                </marker>
+                            </defs>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                Chemoattractants Released
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                Bone Lining Cells Lift
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>활성화:</strong> 화학유인물질 방출</p>
+                        <p>Bone lining cells가 기질 소화하여 표면 노출</p>
+                        <p>파골세포 전구체 모집 준비</p>
+                    </div>
+                </div>
+                
+                <!-- Stage 3: Osteoclast Recruitment -->
+                <div class="stage-card" id="stage3" onclick="showStage(3)">
+                    <div class="stage-header">
+                        <div class="stage-number">3</div>
+                        <div class="stage-title">Osteoclast Precursor Recruitment</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Bone surface -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            
+                            <!-- Blood vessel -->
+                            <rect x="30" y="50" width="15" height="120" fill="#e74c3c" opacity="0.3"/>
+                            
+                            <!-- Precursors -->
+                            <circle cx="60" cy="80" r="12" fill="#ff9999"/>
+                            <circle cx="90" cy="70" r="12" fill="#ff9999"/>
+                            <circle cx="120" cy="85" r="12" fill="#ff9999"/>
+                            
+                            <!-- Fusing precursors -->
+                            <ellipse cx="180" cy="120" rx="25" ry="20" fill="#ff6666"/>
+                            <circle cx="170" cy="120" r="5" fill="darkred"/>
+                            <circle cx="180" cy="115" r="5" fill="darkred"/>
+                            <circle cx="190" cy="120" r="5" fill="darkred"/>
+                            
+                            <!-- RANK-RANKL interaction -->
+                            <text x="250" y="100" font-size="10" fill="#8e44ad">RANKL</text>
+                            <line x1="240" y1="105" x2="200" y2="120" stroke="#8e44ad" stroke-width="2"/>
+                            <text x="160" y="140" font-size="10" fill="#9b59b6">RANK</text>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                Precursor Fusion
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                RANK-RANKL Binding
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>파골세포 전구체 모집:</strong> 혈관에서 단핵구 유래</p>
+                        <p>RANK-RANKL 결합으로 융합 시작</p>
+                        <p>다핵 파골세포 형성 (3-20개 핵)</p>
+                    </div>
+                </div>
+                
+                <!-- Stage 4: Resorption -->
+                <div class="stage-card" id="stage4" onclick="showStage(4)">
+                    <div class="stage-header">
+                        <div class="stage-number">4</div>
+                        <div class="stage-title">Resorption</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Bone surface with resorption lacuna -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            <ellipse cx="200" cy="180" rx="60" ry="20" fill="#c19660"/>
+                            
+                            <!-- Osteoclast -->
+                            <ellipse cx="200" cy="160" rx="50" ry="35" fill="#ff4444"/>
+                            <circle cx="180" cy="160" r="6" fill="darkred"/>
+                            <circle cx="200" cy="155" r="6" fill="darkred"/>
+                            <circle cx="220" cy="160" r="6" fill="darkred"/>
+                            <circle cx="190" cy="165" r="6" fill="darkred"/>
+                            <circle cx="210" cy="165" r="6" fill="darkred"/>
+                            
+                            <!-- Ruffled border -->
+                            <path d="M 150 180 Q 160 185 170 180 T 190 180 Q 200 185 210 180 T 230 180 Q 240 185 250 180" 
+                                  stroke="#8b0000" stroke-width="2" fill="none"/>
+                            
+                            <!-- Released ions -->
+                            <circle cx="160" cy="120" r="5" fill="#f39c12" opacity="0.8">
+                                <animate attributeName="cy" values="180;120" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="200" cy="130" r="5" fill="#3498db" opacity="0.8">
+                                <animate attributeName="cy" values="180;130" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="240" cy="125" r="5" fill="#f39c12" opacity="0.8">
+                                <animate attributeName="cy" values="180;125" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                Bone Resorption
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                Acid + Proteases (pH 4.5)
+                            </text>
+                            <text x="160" y="110" font-size="10" fill="#f39c12">Ca²⁺</text>
+                            <text x="200" y="120" font-size="10" fill="#3498db">PO₄³⁻</text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>골흡수:</strong> Ruffled border 형성</p>
+                        <p>H⁺ 분비로 pH 4.5 유지, 무기질 용해</p>
+                        <p>Cathepsin K로 콜라겐 분해</p>
+                        <p>Howship's lacuna 형성 (2-4주)</p>
+                    </div>
+                </div>
+                
+                <!-- Stage 5: Deposition -->
+                <div class="stage-card" id="stage5" onclick="showStage(5)">
+                    <div class="stage-header">
+                        <div class="stage-number">5</div>
+                        <div class="stage-title">Deposition</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Bone surface with lacuna -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            <ellipse cx="200" cy="180" rx="60" ry="15" fill="#c19660"/>
+                            
+                            <!-- Osteoblasts lining the lacuna -->
+                            <circle cx="150" cy="175" r="15" fill="#27ae60"/>
+                            <circle cx="170" cy="180" r="15" fill="#27ae60"/>
+                            <circle cx="190" cy="183" r="15" fill="#27ae60"/>
+                            <circle cx="210" cy="183" r="15" fill="#27ae60"/>
+                            <circle cx="230" cy="180" r="15" fill="#27ae60"/>
+                            <circle cx="250" cy="175" r="15" fill="#27ae60"/>
+                            
+                            <!-- New bone layers (osteoid) -->
+                            <ellipse cx="200" cy="185" rx="55" ry="10" fill="#66bb6a" opacity="0.5"/>
+                            <ellipse cx="200" cy="190" rx="50" ry="8" fill="#66bb6a" opacity="0.6"/>
+                            
+                            <!-- Trapped osteoblast becoming osteocyte -->
+                            <circle cx="200" cy="195" r="12" fill="#4a69bd" opacity="0.7"/>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                New Bone Formation
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                Osteoid Deposition
+                            </text>
+                            <text x="200" y="70" font-size="10" fill="#27ae60">Type I Collagen</text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>골형성:</strong> 조골세포가 lacuna 내벽 배열</p>
+                        <p>Type I collagen 기질 (osteoid) 분비</p>
+                        <p>Alkaline phosphatase로 mineralization</p>
+                        <p>일부 조골세포는 갇혀서 골세포로 분화</p>
+                    </div>
+                </div>
+                
+                <!-- Stage 6: New Bone -->
+                <div class="stage-card" id="stage6" onclick="showStage(6)">
+                    <div class="stage-header">
+                        <div class="stage-number">6</div>
+                        <div class="stage-title">New Bone</div>
+                    </div>
+                    <div class="stage-visual">
+                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                            <!-- Restored bone surface -->
+                            <rect x="0" y="170" width="400" height="80" fill="#d4a574"/>
+                            
+                            <!-- Bone lining cells (quiescent osteoblasts) -->
+                            <rect x="50" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            <rect x="100" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            <rect x="150" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            <rect x="200" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            <rect x="250" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            <rect x="300" y="160" width="40" height="10" fill="#4a69bd" opacity="0.5"/>
+                            
+                            <!-- New osteocytes in bone matrix -->
+                            <circle cx="120" cy="200" r="10" fill="#4a69bd"/>
+                            <circle cx="200" cy="190" r="10" fill="#4a69bd"/>
+                            <circle cx="280" cy="210" r="10" fill="#4a69bd"/>
+                            <circle cx="160" cy="220" r="10" fill="#4a69bd"/>
+                            <circle cx="240" cy="205" r="10" fill="#4a69bd"/>
+                            
+                            <!-- Dendrite network -->
+                            <line x1="120" y1="200" x2="160" y2="220" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="200" y1="190" x2="240" y2="205" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="200" y1="190" x2="160" y2="220" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            <line x1="240" y1="205" x2="280" y2="210" stroke="#4a69bd" stroke-width="1" opacity="0.5"/>
+                            
+                            <text x="200" y="30" text-anchor="middle" font-size="14" fill="#1e3a5f">
+                                Remodeling Complete
+                            </text>
+                            <text x="200" y="50" text-anchor="middle" font-size="12" fill="#6c757d">
+                                Quiescent State Restored
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="stage-description">
+                        <p><strong>완성된 신생골:</strong> 리모델링 완료</p>
+                        <p>조골세포 → Bone lining cells (휴지기)</p>
+                        <p>갇힌 조골세포 → 골세포로 분화</p>
+                        <p>Dendrite로 연결된 골세포 네트워크 형성</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <div class="control-section">
+                    <h3>🎮 시뮬레이션 제어</h3>
+                    <div class="btn-group">
+                        <button class="btn" onclick="startCycle()">
+                            ▶️ 전체 사이클 시작
+                        </button>
+                        <button class="btn secondary" onclick="pauseCycle()">
+                            ⏸️ 일시정지
+                        </button>
+                        <button class="btn secondary" onclick="resetCycle()">
+                            🔄 초기화
+                        </button>
+                        <button class="btn success" onclick="stepThrough()">
+                            ⏭️ 다음 단계
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>⏱️ 사이클 진행</h3>
+                    <div class="timeline">
+                        <div class="timeline-bar">
+                            <div class="timeline-progress" id="timelineProgress"></div>
+                        </div>
+                        <div class="timeline-markers">
+                            <span>시작</span>
+                            <span>2주</span>
+                            <span>4주</span>
+                            <span>3개월</span>
+                            <span>완료</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>🔬 주요 분자</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #9b59b6;"></div>
+                            <span>RANKL</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #8e44ad;"></div>
+                            <span>RANK</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f39c12;"></div>
+                            <span>Ca²⁺</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #3498db;"></div>
+                            <span>PO₄³⁻</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h4>💡 리모델링 사이클 정보</h4>
+                    <p id="cycleInfo">
+                        골 리모델링은 약 3-6개월에 걸쳐 진행됩니다. 
+                        골흡수는 2-4주, 골형성은 3-4개월이 소요됩니다.
+                        성인의 경우 매년 약 10%의 골조직이 교체됩니다.
+                    </p>
+                </div>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <h4>📊 임상적 의의</h4>
+                    <p>
+                        • <strong>골다공증:</strong> 골흡수 > 골형성<br>
+                        • <strong>Bisphosphonates:</strong> 파골세포 억제<br>
+                        • <strong>Denosumab:</strong> RANKL 항체<br>
+                        • <strong>Teriparatide:</strong> 조골세포 자극
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStage = 0;
+        let isPlaying = false;
+        let cycleInterval;
+        
+        function showStage(stageNum) {
+            // Clear all active states
+            document.querySelectorAll('.stage-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Activate selected stage
+            document.getElementById(`stage${stageNum}`).classList.add('active');
+            currentStage = stageNum;
+            
+            // Update timeline
+            const progress = (stageNum / 6) * 100;
+            document.getElementById('timelineProgress').style.width = progress + '%';
+            
+            // Update info based on stage
+            updateStageInfo(stageNum);
+        }
+        
+        function updateStageInfo(stageNum) {
+            const stageInfo = {
+                1: "미세손상 감지: 골세포가 기계적 자극을 감지하고 apoptosis를 통해 리모델링을 시작합니다.",
+                2: "활성화 단계: Bone lining cells가 콜라겐을 분해하여 골표면을 노출시킵니다. (1-2일)",
+                3: "파골세포 모집: RANK-RANKL 상호작용으로 전구세포가 융합하여 다핵 파골세포를 형성합니다. (3-5일)",
+                4: "골흡수: 파골세포가 Howship's lacuna를 형성하며 골기질을 분해합니다. (2-4주)",
+                5: "골형성: 조골세포가 Type I collagen을 분비하여 새로운 골기질을 형성합니다. (3-4개월)",
+                6: "완료: 새로운 골조직이 mineralization되고 조골세포는 휴지기 상태로 전환됩니다."
+            };
+            
+            document.getElementById('cycleInfo').innerHTML = stageInfo[stageNum] || stageInfo[1];
+        }
+        
+        function startCycle() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            currentStage = 1;
+            
+            cycleInterval = setInterval(() => {
+                showStage(currentStage);
+                currentStage++;
+                
+                if (currentStage > 6) {
+                    currentStage = 1;
+                }
+            }, 3000);
+        }
+        
+        function pauseCycle() {
+            isPlaying = false;
+            clearInterval(cycleInterval);
+        }
+        
+        function resetCycle() {
+            pauseCycle();
+            currentStage = 0;
+            document.querySelectorAll('.stage-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.getElementById('timelineProgress').style.width = '0%';
+            document.getElementById('cycleInfo').innerHTML = 
+                "골 리모델링은 약 3-6개월에 걸쳐 진행됩니다. 골흡수는 2-4주, 골형성은 3-4개월이 소요됩니다. 성인의 경우 매년 약 10%의 골조직이 교체됩니다.";
+        }
+        
+        function stepThrough() {
+            if (currentStage >= 6) {
+                currentStage = 0;
+            }
+            currentStage++;
+            showStage(currentStage);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    if (isPlaying) {
+                        pauseCycle();
+                    } else {
+                        startCycle();
+                    }
+                    break;
+                case 'ArrowRight':
+                    stepThrough();
+                    break;
+                case 'ArrowLeft':
+                    if (currentStage > 1) {
+                        currentStage -= 2;
+                        stepThrough();
+                    }
+                    break;
+                case 'r':
+                case 'R':
+                    resetCycle();
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                    showStage(parseInt(e.key));
+                    break;
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Bone Remodeling Cycle Simulation initialized');
+            console.log('Keyboard shortcuts: Space (play/pause), Arrow keys (navigate), R (reset), 1-6 (jump to stage)');
+        });
+    </script>
+</body>
+</html>
