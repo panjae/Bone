@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골 형성 완료 과정 시뮬레이션</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c5530, #4a7c59);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #ffeb3b;
+            padding-bottom: 20px;
+        }
+
+        .simulation-area {
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            position: relative;
+            height: 550px;
+            overflow: hidden;
+            border: 3px solid #333;
+        }
+
+        .bone-structure {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            height: 180px;
+            background: linear-gradient(to bottom, #ecf0f1, #bdc3c7);
+            border-top: 3px solid #85929e;
+            transition: all 2s ease;
+        }
+
+        .bone-layers {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(189, 195, 199, 0.8) 0px,
+                rgba(189, 195, 199, 0.8) 15px,
+                rgba(236, 240, 241, 0.8) 15px,
+                rgba(236, 240, 241, 0.8) 30px
+            );
+        }
+
+        .filled-cavity {
+            position: absolute;
+            bottom: 140px;
+            left: 42%;
+            width: 160px;
+            height: 40px;
+            background: linear-gradient(to bottom, #ecf0f1, #d5dbdb);
+            border-radius: 20px 20px 0 0;
+            border: 2px solid #85929e;
+            transition: all 2s ease;
+        }
+
+        .osteoblast {
+            position: absolute;
+            width: 25px;
+            height: 30px;
+            background: linear-gradient(to bottom, #2ecc71, #27ae60);
+            border-radius: 50% 50% 20% 20%;
+            border: 2px solid #145a32;
+            transition: all 2s ease;
+        }
+
+        .osteoblast.dying {
+            background: linear-gradient(to bottom, #7f8c8d, #95a5a6);
+            transform: scale(0.5);
+            opacity: 0.3;
+            filter: blur(1px);
+        }
+
+        .bone-lining-cell {
+            position: absolute;
+            width: 20px;
+            height: 15px;
+            background: linear-gradient(to bottom, #f39c12, #e67e22);
+            border-radius: 10px 10px 5px 5px;
+            border: 1px solid #d35400;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .osteocyte {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle, #1abc9c, #16a085);
+            border-radius: 50%;
+            border: 2px solid #0e6b5d;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .osteocyte-nucleus {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #2c3e50;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .dendrite {
+            position: absolute;
+            width: 2px;
+            height: 25px;
+            background: #16a085;
+            border-radius: 1px;
+            opacity: 0;
+            transition: all 1s ease;
+            transform-origin: bottom center;
+        }
+
+        .canaliculus {
+            position: absolute;
+            width: 1px;
+            height: 20px;
+            background: #34495e;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .sclerostin-molecule {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #e74c3c;
+            border-radius: 50%;
+            border: 1px solid #c0392b;
+            animation: sclerostinFlow 4s ease-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes sclerostinFlow {
+            0% { 
+                transform: translate(0, 0) scale(0.5);
+                opacity: 1;
+            }
+            30% {
+                opacity: 1;
+                transform: translate(20px, -15px) scale(1);
+            }
+            70% {
+                opacity: 0.8;
+                transform: translate(60px, -35px) scale(1.1);
+            }
+            100% { 
+                transform: translate(120px, -60px) scale(0.3);
+                opacity: 0;
+            }
+        }
+
+        .wnt-molecule {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3498db;
+            border-radius: 50%;
+            border: 2px solid #2471a3;
+            animation: wntInhibition 3s ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes wntInhibition {
+            0% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(0.5);
+                filter: blur(2px);
+            }
+            100% { 
+                opacity: 0;
+                transform: scale(0.2);
+                filter: blur(3px);
+            }
+        }
+
+        .bone-surface {
+            position: absolute;
+            bottom: 260px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(to right, #f39c12, #e67e22);
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 2s ease;
+        }
+
+        .lacuna {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: radial-gradient(circle, rgba(52, 73, 94, 0.8), rgba(44, 62, 80, 0.6));
+            border-radius: 50%;
+            border: 1px solid #34495e;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .quiescent-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffeb3b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            min-width: 120px;
+        }
+
+        .btn-step1 { background: linear-gradient(45deg, #ecf0f1, #bdc3c7); color: #2c3e50; }
+        .btn-step2 { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+        .btn-step3 { background: linear-gradient(45deg, #7f8c8d, #95a5a6); }
+        .btn-step4 { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .btn-step5 { background: linear-gradient(45deg, #1abc9c, #16a085); }
+        .btn-step6 { background: linear-gradient(45deg, #16a085, #0e6b5d); }
+        .btn-step7 { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .btn-step8 { background: linear-gradient(45deg, #34495e, #2c3e50); }
+        .btn-reset { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #ffeb3b;
+        }
+
+        .step-info {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .step-info.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .molecule-legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 11px;
+            max-width: 220px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid #fff;
+            flex-shrink: 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #1abc9c, #f39c12, #e74c3c);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .completion-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+            color: #2c3e50;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 1s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid #d35400;
+        }
+
+        .timeline-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffeb3b;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦴 골 형성 완료 과정 시뮬레이션</h1>
+            <h2>6단계: 새로운 골 (New Bone) - 형성 완료 및 안정화</h2>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="simulation-area" id="simulationArea">
+            <!-- 시간 지표 -->
+            <div class="timeline-indicator" id="timelineIndicator">
+                시작: 골기질 침착 완료
+            </div>
+
+            <!-- 완성된 골 구조 -->
+            <div class="bone-structure">
+                <div class="bone-layers"></div>
+                <div style="position: absolute; top: -25px; left: 20px; color: #333; font-size: 12px; font-weight: bold;">
+                    완성된 골 조직 (Mature Bone)
+                </div>
+            </div>
+
+            <!-- 채워진 공동 -->
+            <div class="filled-cavity" id="filledCavity">
+                <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); color: #333; font-size: 10px; font-weight: bold;">
+                    채워진 공동
+                </div>
+            </div>
+
+            <!-- 골 표면 (골 내막 세포층) -->
+            <div class="bone-surface" id="boneSurface"></div>
+
+            <!-- 조골세포들 (초기 상태) -->
+            <div class="osteoblast" id="osteoblast1" style="bottom: 270px; left: 40%;"></div>
+            <div class="osteoblast" id="osteoblast2" style="bottom: 275px; left: 45%;"></div>
+            <div class="osteoblast" id="osteoblast3" style="bottom: 270px; left: 50%;"></div>
+            <div class="osteoblast" id="osteoblast4" style="bottom: 275px; left: 55%;"></div>
+            <div class="osteoblast" id="osteoblast5" style="bottom: 270px; left: 60%;"></div>
+            <div class="osteoblast" id="osteoblast6" style="bottom: 275px; left: 42%;"></div>
+            <div class="osteoblast" id="osteoblast7" style="bottom: 270px; left: 47%;"></div>
+            <div class="osteoblast" id="osteoblast8" style="bottom: 275px; left: 52%;"></div>
+
+            <!-- 완료 배지 -->
+            <div class="completion-badge" id="completionBadge">
+                🎉 골 재형성 완료! 🎉
+            </div>
+
+            <!-- 분자 범례 -->
+            <div class="molecule-legend">
+                <h4 style="margin: 0 0 10px 0; color: #ffeb3b;">세포/분자 표시</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>활성 조골세포</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #7f8c8d;"></div>
+                    <span>죽어가는 조골세포</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>골 내막 세포</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1abc9c;"></div>
+                    <span>골세포 (Osteocyte)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>Sclerostin</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Wnt (억제됨)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn btn-step1" onclick="step1()">1. 공동 완전 충전</button>
+            <button class="control-btn btn-step2" onclick="step2()">2. 조골세포 작업 중단</button>
+            <button class="control-btn btn-step3" onclick="step3()">3. 일부 조골세포 사망</button>
+            <button class="control-btn btn-step4" onclick="step4()">4. 골 내막 세포 분화</button>
+            <button class="control-btn btn-step5" onclick="step5()">5. 골세포 변환</button>
+            <button class="control-btn btn-step6" onclick="step6()">6. 수상돌기 확장</button>
+            <button class="control-btn btn-step7" onclick="step7()">7. Sclerostin 분비</button>
+            <button class="control-btn btn-step8" onclick="step8()">8. 휴지기 상태</button>
+            <button class="control-btn btn-reset" onclick="resetSimulation()">초기화</button>
+        </div>
+
+        <div class="info-panel">
+            <div class="step-info active" id="info-initial">
+                <h3>🏗️ 골 형성 완료 과정</h3>
+                <p><strong>골기질 침착이 완료</strong>된 후 골 구조를 안정화하는 과정입니다.</p>
+                <p>• 골 재성장은 <strong>매우 느림</strong> (수개월 소요)</p>
+                <p>• 조골세포의 <strong>3가지 운명</strong>: 사망, 골내막세포, 골세포</p>
+                <p>• <strong>Sclerostin-Wnt 축</strong>을 통한 골형성 조절</p>
+                <p>• 최종적으로 <strong>휴지기 상태</strong>로 전환</p>
+            </div>
+
+            <div class="step-info" id="info-step1">
+                <h3>1️⃣ 공동 완전 충전 (Cavity Completely Filled)</h3>
+                <p>골기질 침착과 무기질화가 완료되어 <strong>공동이 완전히 채워집니다</strong>.</p>
+                <p>• 하이드록시아파타이트 결정 성숙</p>
+                <p>• 콜라겐 섬유 교차결합 강화</p>
+                <p>• 골 매트릭스 밀도 최적화</p>
+                <p>• 기계적 강도 회복 완료</p>
+            </div>
+
+            <div class="step-info" id="info-step2">
+                <h3>2️⃣ 조골세포 작업 중단 (Osteoblasts Cease Work)</h3>
+                <p>충분한 골이 형성되면 조골세포들이 <strong>골기질 합성을 중단</strong>합니다.</p>
+                <p>• Type I 콜라겐 합성 감소</p>
+                <p>• 알칼리 포스파타제 활성 저하</p>
+                <p>• 오스테오칼신 생산 중단</p>
+                <p>• 세포 대사 활동 감소</p>
+            </div>
+
+            <div class="step-info" id="info-step3">
+                <h3>3️⃣ 일부 조골세포 사망 (Some Osteoblasts Die)</h3>
+                <p>작업이 완료된 조골세포의 일부가 <strong>아폽토시스</strong>를 겪습니다.</p>
+                <p>• 계획된 세포사 프로그램 활성화</p>
+                <p>• 불필요한 세포 제거</p>
+                <p>• 조직 항상성 유지</p>
+                <p>• 에너지 효율성 확보</p>
+            </div>
+
+            <div class="step-info" id="info-step4">
+                <h3>4️⃣ 골 내막 세포 분화 (Bone Lining Cell Differentiation)</h3>
+                <p>일부 조골세포가 <strong>골 내막 세포(bone lining cells)</strong>로 분화합니다.</p>
+                <p>• 편평한 형태로 변형</p>
+                <p>• 골 표면을 덮는 얇은 층 형성</p>
+                <p>• <strong>휴지기 골 표면</strong> 유지</p>
+                <p>• 추후 골 재형성 시 재활성화 가능</p>
+            </div>
+
+            <div class="step-info" id="info-step5">
+                <h3>5️⃣ 골세포 변환 (Osteocyte Transformation)</h3>
+                <p><strong>갇힌 조골세포</strong>들이 골세포로 완전히 분화합니다.</p>
+                <p>• 세포체 크기 감소</p>
+                <p>• 골 매트릭스 내 lacuna 형성</p>
+                <p>• 골 내 기계수용체 역할</p>
+                <p>• 골 대사 조절 중추</p>
+            </div>
+
+            <div class="step-info" id="info-step6">
+                <h3>6️⃣ 수상돌기 확장 (Dendrite Extension)</h3>
+                <p>골세포들이 <strong>수상돌기(dendrites)</strong>를 확장하여 네트워크를 형성합니다.</p>
+                <p>• Canaliculi 시스템 구축</p>
+                <p>• 세포 간 연결망 완성</p>
+                <p>• 기계적 신호 전달 네트워크</p>
+                <p>• 골 전체 통신 시스템 구축</p>
+            </div>
+
+            <div class="step-info" id="info-step7">
+                <h3>7️⃣ Sclerostin 분비 (Sclerostin Release)</h3>
+                <p>골세포들이 <strong>Sclerostin</strong>을 분비하여 추가 골형성을 억제합니다.</p>
+                <p>• Sclerostin = <strong>Wnt 수용체 길항제</strong></p>
+                <p>• Wnt 신호전달 차단</p>
+                <p>• 조골세포 분화 억제</p>
+                <p>• <strong>골형성 음성 피드백</strong> 조절</p>
+            </div>
+
+            <div class="step-info" id="info-step8">
+                <h3>8️⃣ 휴지기 상태 (Quiescent State)</h3>
+                <p>골 조직이 <strong>안정된 휴지기 상태</strong>로 전환됩니다.</p>
+                <p>• 골 재형성 활동 최소화</p>
+                <p>• 골 내막 세포들이 표면 보호</p>
+                <p>• 골세포 네트워크가 모니터링</p>
+                <p>• 필요시 재활성화 준비 완료</p>
+                <p>• <strong>🎉 골 재형성 사이클 완료! 🎉</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = (currentStep / 8) * 100 + '%';
+        }
+
+        function updateTimeline(step) {
+            const timeline = document.getElementById('timelineIndicator');
+            const timepoints = [
+                '시작: 골기질 침착 완료',
+                '1개월: 공동 충전 완료',
+                '2개월: 조골세포 활동 감소',
+                '3개월: 세포 운명 결정',
+                '4개월: 골 내막 형성',
+                '5개월: 골세포 완전 분화',
+                '6개월: 네트워크 구축',
+                '7개월: Sclerostin 조절',
+                '완료: 휴지기 상태'
+            ];
+            timeline.textContent = timepoints[step] || timepoints[0];
+        }
+
+        function showStepInfo(step) {
+            const allInfos = document.querySelectorAll('.step-info');
+            allInfos.forEach(info => info.classList.remove('active'));
+            
+            const targetInfo = document.getElementById(`info-step${step}`) || document.getElementById('info-initial');
+            targetInfo.classList.add('active');
+        }
+
+        function createMolecule(className, startX, startY, delay = 0) {
+            setTimeout(() => {
+                const molecule = document.createElement('div');
+                molecule.className = className;
+                molecule.style.left = startX + 'px';
+                molecule.style.top = startY + 'px';
+                molecule.style.opacity = '1';
+                document.getElementById('simulationArea').appendChild(molecule);
+                
+                // 자동 제거
+                setTimeout(() => {
+                    if (molecule.parentNode) {
+                        molecule.parentNode.removeChild(molecule);
+                    }
+                }, 5000);
+            }, delay);
+        }
+
+        function step1() {
+            if (currentStep >= 1) return;
+            currentStep = 1;
+            updateProgress();
+            updateTimeline(1);
+            showStepInfo(1);
+
+            // 공동이 완전히 채워짐을 시각화
+            const filledCavity = document.getElementById('filledCavity');
+            filledCavity.style.height = '50px';
+            filledCavity.style.background = 'linear-gradient(to bottom, #ecf0f1, #bdc3c7)';
+            filledCavity.style.border = '3px solid #85929e';
+        }
+
+        function step2() {
+            if (currentStep < 1 || currentStep >= 2) return;
+            currentStep = 2;
+            updateProgress();
+            updateTimeline(2);
+            showStepInfo(2);
+
+            // 조골세포들의 활동 감소 (색상 변화)
+            const osteoblasts = document.querySelectorAll('.osteoblast');
+            osteoblasts.forEach((cell, index) => {
+                setTimeout(() => {
+                    cell.style.background = 'linear-gradient(to bottom, #95a5a6, #7f8c8d)';
+                    cell.style.transform = 'scale(0.9)';
+                }, index * 200);
+            });
+        }
+
+        function step3() {
+            if (currentStep < 2 || currentStep >= 3) return;
+            currentStep = 3;
+            updateProgress();
+            updateTimeline(3);
+            showStepInfo(3);
+
+            // 일부 조골세포 사망 (25% 정도)
+            const dyingCells = ['osteoblast1', 'osteoblast6'];
+            dyingCells.forEach((cellId, index) => {
+                setTimeout(() => {
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        cell.classList.add('dying');
+                    }
+                }, index * 500);
+            });
+        }
+
+        function step4() {
+            if (currentStep < 3 || currentStep >= 4) return;
+            currentStep = 4;
+            updateProgress();
+            updateTimeline(4);
+            showStepInfo(4);
+
+            // 골 내막 세포로 분화 (50% 정도)
+            const liningCells = ['osteoblast2', 'osteoblast3', 'osteoblast7', 'osteoblast8'];
+            liningCells.forEach((cellId, index) => {
+                setTimeout(() => {
+                    const originalCell = document.getElementById(cellId);
+                    if (originalCell) {
+                        const rect = originalCell.getBoundingClientRect();
+                        const simulationRect = document.getElementById('simulationArea').getBoundingClientRect();
+                        
+                        const liningCell = document.createElement('div');
+                        liningCell.className = 'bone-lining-cell';
+                        liningCell.style.left = (rect.left - simulationRect.left) + 'px';
+                        liningCell.style.top = (rect.top - simulationRect.top + 15) + 'px';
+                        liningCell.style.opacity = '1';
+                        document.getElementById('simulationArea').appendChild(liningCell);
+                        
+                        originalCell.style.opacity = '0';
+                    }
+                }, index * 300);
+            });
+
+            // 골 표면층 형성
+            setTimeout(() => {
+                document.getElementById('boneSurface').style.opacity = '1';
+            }, 1000);
+        }
+
+        function step5() {
+            if (currentStep < 4 || currentStep >= 5) return;
+            currentStep = 5;
+            updateProgress();
+            updateTimeline(5);
+            showStepInfo(5);
+
+            // 나머지 조골세포들이 골세포로 변환
+            const osteocyteCells = ['osteoblast4', 'osteoblast5'];
+            osteocyteCells.forEach((cellId, index) => {
+                setTimeout(() => {
+                    const originalCell = document.getElementById(cellId);
+                    if (originalCell) {
+                        const rect = originalCell.getBoundingClientRect();
+                        const simulationRect = document.getElementById('simulationArea').getBoundingClientRect();
+                        
+                        // Lacuna 생성
+                        const lacuna = document.createElement('div');
+                        lacuna.className = 'lacuna';
+                        lacuna.style.left = (rect.left - simulationRect.left - 5) + 'px';
+                        lacuna.style.top = (rect.top - simulationRect.top - 5) + 'px';
+                        lacuna.style.opacity = '1';
+                        document.getElementById('simulationArea').appendChild(lacuna);
+                        
+                        // 골세포 생성
+                        const osteocyte = document.createElement('div');
+                        osteocyte.className = 'osteocyte';
+                        osteocyte.style.left = (rect.left - simulationRect.left) + 'px';
+                        osteocyte.style.top = (rect.top - simulationRect.top) + 'px';
+                        osteocyte.style.opacity = '1';
+                        osteocyte.id = `osteocyte-${index}`;
+                        
+                        const nucleus = document.createElement('div');
+                        nucleus.className = 'osteocyte-nucleus';
+                        osteocyte.appendChild(nucleus);
+                        
+                        document.getElementById('simulationArea').appendChild(osteocyte);
+                        originalCell.style.opacity = '0';
+                    }
+                }, index * 500);
+            });
+        }
+
+        function step6() {
+            if (currentStep < 5 || currentStep >= 6) return;
+            currentStep = 6;
+            updateProgress();
+            updateTimeline(6);
+            showStepInfo(6);
+
+            // 골세포들이 수상돌기 확장
+            setTimeout(() => {
+                const osteocytes = document.querySelectorAll('.osteocyte');
+                osteocytes.forEach((osteocyte, index) => {
+                    // 여러 방향으로 수상돌기 생성
+                    for (let i = 0; i < 4; i++) {
+                        setTimeout(() => {
+                            const dendrite = document.createElement('div');
+                            dendrite.className = 'dendrite';
+                            dendrite.style.left = '8px';
+                            dendrite.style.top = '15px';
+                            dendrite.style.transform = `rotate(${i * 90 + 45}deg)`;
+                            dendrite.style.opacity = '1';
+                            osteocyte.appendChild(dendrite);
+                            
+                            // Canaliculus 생성
+                            const canaliculus = document.createElement('div');
+                            canaliculus.className = 'canaliculus';
+                            canaliculus.style.left = '8px';
+                            canaliculus.style.top = '20px';
+                            canaliculus.style.transform = `rotate(${i * 90 + 45}deg)`;
+                            canaliculus.style.opacity = '0.6';
+                            osteocyte.appendChild(canaliculus);
+                        }, i * 200);
+                    }
+                });
+            }, 500);
+        }
+
+        function step7() {
+            if (currentStep < 6 || currentStep >= 7) return;
+            currentStep = 7;
+            updateProgress();
+            updateTimeline(7);
+            showStepInfo(7);
+
+            // 골세포들에서 Sclerostin 분비
+            for (let i = 0; i < 15; i++) {
+                createMolecule('sclerostin-molecule', 550 + Math.random() * 80, 350 + Math.random() * 40, i * 200);
+            }
+
+            // Wnt 신호 억제 표시
+            for (let i = 0; i < 8; i++) {
+                createMolecule('wnt-molecule', 400 + Math.random() * 200, 300 + Math.random() * 100, i * 300);
+            }
+
+            // 휴지기 라벨 표시
+            setTimeout(() => {
+                const quiescentLabel = document.createElement('div');
+                quiescentLabel.className = 'quiescent-label';
+                quiescentLabel.textContent = 'Sclerostin 분비 중';
+                quiescentLabel.style.left = '520px';
+                quiescentLabel.style.top = '300px';
+                quiescentLabel.style.opacity = '1';
+                document.getElementById('simulationArea').appendChild(quiescentLabel);
+            }, 1000);
+        }
+
+        function step8() {
+            if (currentStep < 7 || currentStep >= 8) return;
+            currentStep = 8;
+            updateProgress();
+            updateTimeline(8);
+            showStepInfo(8);
+
+            // 완전한 휴지기 상태 표시
+            setTimeout(() => {
+                const quiescentLabel = document.createElement('div');
+                quiescentLabel.className = 'quiescent-label';
+                quiescentLabel.textContent = '휴지기 상태 (Quiescent)';
+                quiescentLabel.style.left = '45%';
+                quiescentLabel.style.top = '200px';
+                quiescentLabel.style.opacity = '1';
+                quiescentLabel.style.fontSize = '14px';
+                quiescentLabel.style.background = 'rgba(52, 73, 94, 0.9)';
+                quiescentLabel.style.transform = 'translateX(-50%)';
+                document.getElementById('simulationArea').appendChild(quiescentLabel);
+            }, 500);
+
+            // 완료 배지 표시
+            setTimeout(() => {
+                document.getElementById('completionBadge').style.opacity = '1';
+                document.getElementById('completionBadge').style.transform = 'translate(-50%, -50%) scale(1.1)';
+            }, 1500);
+
+            // 전체 구조 안정화 표시
+            setTimeout(() => {
+                const boneStructure = document.querySelector('.bone-structure');
+                boneStructure.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.5)';
+                boneStructure.style.border = '3px solid #27ae60';
+            }, 2000);
+        }
+
+        function resetSimulation() {
+            currentStep = 0;
+            updateProgress();
+            updateTimeline(0);
+            showStepInfo(0);
+            
+            // 공동 상태 초기화
+            const filledCavity = document.getElementById('filledCavity');
+            filledCavity.style.height = '40px';
+            filledCavity.style.background = 'linear-gradient(to bottom, #ecf0f1, #d5dbdb)';
+            filledCavity.style.border = '2px solid #85929e';
+            
+            // 모든 조골세포 상태 복원
+            const osteoblasts = document.querySelectorAll('.osteoblast');
+            osteoblasts.forEach(cell => {
+                cell.classList.remove('dying');
+                cell.style.background = 'linear-gradient(to bottom, #2ecc71, #27ae60)';
+                cell.style.transform = 'scale(1)';
+                cell.style.opacity = '1';
+            });
+            
+            // 골 표면 숨기기
+            document.getElementById('boneSurface').style.opacity = '0';
+            
+            // 완료 배지 숨기기
+            const completionBadge = document.getElementById('completionBadge');
+            completionBadge.style.opacity = '0';
+            completionBadge.style.transform = 'translate(-50%, -50%) scale(1)';
+            
+            // 골 구조 효과 제거
+            const boneStructure = document.querySelector('.bone-structure');
+            boneStructure.style.boxShadow = 'none';
+            boneStructure.style.border = 'none';
+            
+            // 모든 생성된 요소들 제거
+            const dynamicElements = document.querySelectorAll('.bone-lining-cell, .osteocyte, .lacuna, .dendrite, .canaliculus, .sclerostin-molecule, .wnt-molecule, .quiescent-label');
+            dynamicElements.forEach(element => element.remove());
+        }
+
+        // 초기화
+        updateProgress();
+        updateTimeline(0);
+    </script>
+</body>
+</html>
