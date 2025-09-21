@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bone Canopy Formation - Interactive Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 1200px;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .simulation-area {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-container {
+            flex: 1;
+            min-width: 600px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .controls {
+            flex: 0 0 300px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: #e2e8f0;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .value-display {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .stage-indicator {
+            background: #edf2f7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stage-indicator h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .stage-progress {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .stage-step {
+            flex: 1;
+            height: 8px;
+            background: #cbd5e0;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .stage-step.active {
+            background: #667eea;
+        }
+
+        .stage-step.completed {
+            background: #48bb78;
+        }
+
+        .info-panel {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .info-panel h4 {
+            color: #c53030;
+            margin-bottom: 8px;
+        }
+
+        .info-panel p {
+            color: #742a2a;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .legend-label {
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+
+        .stats-panel {
+            background: #f0fff4;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #38a169;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            color: #2d3748;
+            font-size: 0.95em;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 968px) {
+            .simulation-area {
+                flex-direction: column;
+            }
+
+            .canvas-container,
+            .controls {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bone Canopy Formation - Activation Phase Simulation</h1>
+
+        <div class="simulation-area">
+            <div class="canvas-container">
+                <canvas id="simulationCanvas"></canvas>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8B4513;"></div>
+                        <span class="legend-label">Bone Surface</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FFD700;"></div>
+                        <span class="legend-label">Osteoid Layer</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4169E1;"></div>
+                        <span class="legend-label">Bone Lining Cells</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF6B6B;"></div>
+                        <span class="legend-label">Osteoclast Precursors</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9370DB;"></div>
+                        <span class="legend-label">Blood Vessels</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #32CD32;"></div>
+                        <span class="legend-label">Chemokines</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FFA500;"></div>
+                        <span class="legend-label">Collagenase</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="stage-indicator">
+                    <h3>Current Stage: <span id="currentStageName">Initial</span></h3>
+                    <div class="stage-progress">
+                        <div class="stage-step" data-stage="0"></div>
+                        <div class="stage-step" data-stage="1"></div>
+                        <div class="stage-step" data-stage="2"></div>
+                        <div class="stage-step" data-stage="3"></div>
+                        <div class="stage-step" data-stage="4"></div>
+                    </div>
+                    <p style="font-size: 0.9em; color: #718096; margin-top: 8px;">
+                        Duration: <span id="stageDuration">0</span> / 10 days
+                    </p>
+                </div>
+
+                <div class="control-group">
+                    <button onclick="startSimulation()">Start Simulation</button>
+                    <button onclick="pauseSimulation()">Pause</button>
+                    <button onclick="resetSimulation()">Reset</button>
+                    <button onclick="nextStage()">Next Stage →</button>
+                </div>
+
+                <div class="control-group">
+                    <label>Animation Speed</label>
+                    <div class="slider-container">
+                        <input type="range" id="speedSlider" min="0.5" max="3" step="0.5" value="1">
+                        <span class="value-display" id="speedValue">1.0x</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Chemokine Level (M-CSF)</label>
+                    <div class="slider-container">
+                        <input type="range" id="chemokineSlider" min="0" max="100" value="50">
+                        <span class="value-display" id="chemokineValue">50%</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Collagenase Activity</label>
+                    <div class="slider-container">
+                        <input type="range" id="collagenaseSlider" min="0" max="100" value="50">
+                        <span class="value-display" id="collagenaseValue">50%</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Visualization Options</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="showChemokines" checked>
+                        <label for="showChemokines">Show Chemokine Gradients</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="showEnzymes" checked>
+                        <label for="showEnzymes">Show Enzyme Activity</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="showCanopy" checked>
+                        <label for="showCanopy">Show Canopy Formation</label>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <h4 style="color: #2d3748; margin-bottom: 10px;">Process Statistics</h4>
+                    <div class="stat-item">
+                        <span>Osteoclast Precursors:</span>
+                        <span class="stat-value" id="precursorCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Osteoid Digestion:</span>
+                        <span class="stat-value" id="digestionPercent">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Canopy Coverage:</span>
+                        <span class="stat-value" id="canopyPercent">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>BRC Formation:</span>
+                        <span class="stat-value" id="brcStatus">Not Started</span>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <h4>Stage Information</h4>
+                    <p id="stageInfo">
+                        The activation phase begins the bone remodeling process, lasting approximately 10 days.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Simulation state
+        let animationId = null;
+        let isPaused = false;
+        let currentStage = 0;
+        let stageProgress = 0;
+        let time = 0;
+
+        // Cell and particle arrays
+        let boneLiningCells = [];
+        let osteoclastPrecursors = [];
+        let chemokines = [];
+        let collagenaseParticles = [];
+        let bloodVessels = [];
+
+        // Canopy state
+        let canopyHeight = 0;
+        let canopyFormation = 0;
+        let osteoidDigestion = 0;
+
+        // Stage definitions
+        const stages = [
+            {
+                name: "Initial State",
+                info: "Bone surface covered with osteoid and bone lining cells in resting state.",
+                duration: 10
+            },
+            {
+                name: "Signal Reception",
+                info: "Bone lining cells receive remodeling signals and begin releasing chemokines.",
+                duration: 10
+            },
+            {
+                name: "Precursor Recruitment",
+                info: "Osteoclast precursors are attracted by chemokines (M-CSF) from blood vessels.",
+                duration: 10
+            },
+            {
+                name: "Osteoid Digestion",
+                info: "Bone lining cells release collagenase to digest osteoid and expose mineral surface.",
+                duration: 10
+            },
+            {
+                name: "Canopy Formation",
+                info: "Bone lining cells lift off as a sheet, forming a protective canopy over the BMU.",
+                duration: 10
+            }
+        ];
+
+        // Initialize cells
+        function initializeCells() {
+            boneLiningCells = [];
+            osteoclastPrecursors = [];
+            chemokines = [];
+            collagenaseParticles = [];
+            bloodVessels = [];
+
+            // Create bone lining cells along the surface
+            for (let i = 0; i < 20; i++) {
+                boneLiningCells.push({
+                    x: (i + 1) * (canvas.width / 21),
+                    y: canvas.height * 0.5,
+                    originalY: canvas.height * 0.5,
+                    size: 15,
+                    active: false,
+                    lifting: false
+                });
+            }
+
+            // Create blood vessels
+            for (let i = 0; i < 3; i++) {
+                bloodVessels.push({
+                    x: (i + 1) * (canvas.width / 4),
+                    y: canvas.height * 0.15,
+                    radius: 25
+                });
+            }
+        }
+
+        // Draw functions
+        function drawBoneSurface() {
+            // Draw bone
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height * 0.6, canvas.width, canvas.height * 0.4);
+
+            // Draw osteoid layer (gets thinner as digestion progresses)
+            const osteoidThickness = 20 * (1 - osteoidDigestion);
+            if (osteoidThickness > 0) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(0, canvas.height * 0.6 - osteoidThickness, canvas.width, osteoidThickness);
+            }
+
+            // Draw exposed mineral (appears as osteoid is digested)
+            if (osteoidDigestion > 0) {
+                ctx.fillStyle = '#696969';
+                ctx.fillRect(0, canvas.height * 0.6 - 20, canvas.width, 20 * osteoidDigestion);
+            }
+        }
+
+        function drawBloodVessels() {
+            bloodVessels.forEach(vessel => {
+                // Draw vessel
+                ctx.fillStyle = '#9370DB';
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                ctx.arc(vessel.x, vessel.y, vessel.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw blood flow
+                ctx.strokeStyle = '#8B008B';
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 0.5;
+                for (let i = 0; i < 3; i++) {
+                    const offset = (time * 2 + i * 20) % 40;
+                    ctx.beginPath();
+                    ctx.arc(vessel.x, vessel.y, vessel.radius - 5 - offset/2, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function drawBoneLiningCells() {
+            boneLiningCells.forEach(cell => {
+                ctx.fillStyle = cell.active ? '#1E90FF' : '#4169E1';
+                ctx.globalAlpha = 0.8;
+
+                // Calculate cell position (lifting for canopy)
+                let yPos = cell.y;
+                if (cell.lifting) {
+                    yPos = cell.originalY - canopyHeight;
+                }
+
+                // Draw cell
+                ctx.beginPath();
+                ctx.ellipse(cell.x, yPos, cell.size, cell.size * 0.7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw nucleus
+                ctx.fillStyle = '#000080';
+                ctx.beginPath();
+                ctx.arc(cell.x, yPos, cell.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 1;
+            });
+
+            // Draw canopy connections
+            if (canopyFormation > 0 && document.getElementById('showCanopy').checked) {
+                ctx.strokeStyle = '#4169E1';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = canopyFormation;
+                ctx.beginPath();
+                for (let i = 0; i < boneLiningCells.length; i++) {
+                    const cell = boneLiningCells[i];
+                    if (cell.lifting) {
+                        if (i === 0) {
+                            ctx.moveTo(cell.x, cell.originalY - canopyHeight);
+                        } else {
+                            ctx.lineTo(cell.x, cell.originalY - canopyHeight);
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                // Draw BRC label
+                if (canopyFormation > 0.5) {
+                    ctx.fillStyle = '#4169E1';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Bone Remodeling Compartment (BRC)', canvas.width / 2, canvas.height * 0.4);
+                }
+
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawOsteoclastPrecursors() {
+            osteoclastPrecursors.forEach(precursor => {
+                ctx.fillStyle = '#FF6B6B';
+                ctx.globalAlpha = 0.8;
+
+                // Draw precursor cell
+                ctx.beginPath();
+                ctx.arc(precursor.x, precursor.y, precursor.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw nucleus
+                ctx.fillStyle = '#8B0000';
+                ctx.beginPath();
+                ctx.arc(precursor.x, precursor.y, precursor.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function drawChemokines() {
+            if (!document.getElementById('showChemokines').checked) return;
+
+            chemokines.forEach(chem => {
+                ctx.fillStyle = '#32CD32';
+                ctx.globalAlpha = chem.strength;
+                ctx.beginPath();
+                ctx.arc(chem.x, chem.y, chem.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function drawCollagenase() {
+            if (!document.getElementById('showEnzymes').checked) return;
+
+            collagenaseParticles.forEach(particle => {
+                ctx.fillStyle = '#FFA500';
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Update functions
+        function updateStage() {
+            const stageInfo = stages[currentStage];
+            document.getElementById('currentStageName').textContent = stageInfo.name;
+            document.getElementById('stageInfo').textContent = stageInfo.info;
+            document.getElementById('stageDuration').textContent = Math.floor(stageProgress * 10);
+
+            // Update stage progress indicators
+            document.querySelectorAll('.stage-step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < currentStage) {
+                    step.classList.add('completed');
+                } else if (index === currentStage) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update statistics
+            document.getElementById('precursorCount').textContent = osteoclastPrecursors.length;
+            document.getElementById('digestionPercent').textContent = Math.floor(osteoidDigestion * 100) + '%';
+            document.getElementById('canopyPercent').textContent = Math.floor(canopyFormation * 100) + '%';
+            document.getElementById('brcStatus').textContent = canopyFormation > 0.8 ? 'Formed' :
+                canopyFormation > 0.3 ? 'Forming' : 'Not Started';
+        }
+
+        function updateSimulation() {
+            if (isPaused) return;
+
+            const speed = parseFloat(document.getElementById('speedSlider').value);
+            const chemokineLevel = parseFloat(document.getElementById('chemokineSlider').value) / 100;
+            const collagenaseLevel = parseFloat(document.getElementById('collagenaseSlider').value) / 100;
+
+            time += speed;
+            stageProgress += speed * 0.01;
+
+            // Stage transitions
+            if (stageProgress >= 1 && currentStage < stages.length - 1) {
+                currentStage++;
+                stageProgress = 0;
+            }
+
+            // Stage-specific updates
+            switch(currentStage) {
+                case 1: // Signal Reception
+                    // Activate bone lining cells
+                    boneLiningCells.forEach(cell => {
+                        if (Math.random() < 0.02 * speed) {
+                            cell.active = true;
+                        }
+                    });
+                    break;
+
+                case 2: // Precursor Recruitment
+                    // Release chemokines
+                    if (chemokines.length < 30 * chemokineLevel) {
+                        boneLiningCells.forEach(cell => {
+                            if (cell.active && Math.random() < 0.1 * chemokineLevel * speed) {
+                                chemokines.push({
+                                    x: cell.x,
+                                    y: cell.y,
+                                    radius: 10,
+                                    strength: 0.5,
+                                    vx: (Math.random() - 0.5) * 2,
+                                    vy: -Math.random() * 2
+                                });
+                            }
+                        });
+                    }
+
+                    // Recruit osteoclast precursors
+                    if (osteoclastPrecursors.length < 15 * chemokineLevel) {
+                        bloodVessels.forEach(vessel => {
+                            if (Math.random() < 0.05 * chemokineLevel * speed) {
+                                osteoclastPrecursors.push({
+                                    x: vessel.x + (Math.random() - 0.5) * vessel.radius,
+                                    y: vessel.y,
+                                    size: 8,
+                                    vx: (Math.random() - 0.5) * 2,
+                                    vy: Math.random() * 2,
+                                    targetY: canvas.height * 0.5
+                                });
+                            }
+                        });
+                    }
+                    break;
+
+                case 3: // Osteoid Digestion
+                    // Release collagenase
+                    if (collagenaseParticles.length < 50 * collagenaseLevel) {
+                        boneLiningCells.forEach(cell => {
+                            if (cell.active && Math.random() < 0.1 * collagenaseLevel * speed) {
+                                collagenaseParticles.push({
+                                    x: cell.x,
+                                    y: cell.y,
+                                    vy: 1
+                                });
+                            }
+                        });
+                    }
+
+                    // Digest osteoid
+                    if (osteoidDigestion < 1) {
+                        osteoidDigestion += 0.005 * collagenaseLevel * speed;
+                        osteoidDigestion = Math.min(osteoidDigestion, 1);
+                    }
+                    break;
+
+                case 4: // Canopy Formation
+                    // Lift bone lining cells
+                    boneLiningCells.forEach(cell => {
+                        cell.lifting = true;
+                    });
+
+                    if (canopyHeight < 50) {
+                        canopyHeight += 0.5 * speed;
+                    }
+
+                    if (canopyFormation < 1) {
+                        canopyFormation += 0.01 * speed;
+                        canopyFormation = Math.min(canopyFormation, 1);
+                    }
+                    break;
+            }
+
+            // Update particle positions
+            chemokines = chemokines.filter(chem => {
+                chem.x += chem.vx;
+                chem.y += chem.vy;
+                chem.radius += 0.5;
+                chem.strength -= 0.01;
+                return chem.strength > 0;
+            });
+
+            osteoclastPrecursors.forEach(precursor => {
+                // Move towards target
+                if (precursor.y < precursor.targetY - 10) {
+                    precursor.y += precursor.vy;
+                }
+                precursor.x += (Math.random() - 0.5) * 0.5;
+            });
+
+            collagenaseParticles = collagenaseParticles.filter(particle => {
+                particle.y += particle.vy;
+                return particle.y < canvas.height * 0.6;
+            });
+
+            updateStage();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#E6F3FF');
+            gradient.addColorStop(0.5, '#F0F8FF');
+            gradient.addColorStop(1, '#FFFFFF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw all components
+            drawBoneSurface();
+            drawBloodVessels();
+            drawCollagenase();
+            drawChemokines();
+            drawOsteoclastPrecursors();
+            drawBoneLiningCells();
+
+            updateSimulation();
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Control functions
+        function startSimulation() {
+            if (animationId) return;
+            isPaused = false;
+            animate();
+        }
+
+        function pauseSimulation() {
+            isPaused = !isPaused;
+        }
+
+        function resetSimulation() {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+            isPaused = false;
+            currentStage = 0;
+            stageProgress = 0;
+            time = 0;
+            canopyHeight = 0;
+            canopyFormation = 0;
+            osteoidDigestion = 0;
+            initializeCells();
+            updateStage();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            animate();
+            pauseSimulation();
+        }
+
+        function nextStage() {
+            if (currentStage < stages.length - 1) {
+                currentStage++;
+                stageProgress = 0;
+                updateStage();
+            }
+        }
+
+        // Event listeners
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            document.getElementById('speedValue').textContent = e.target.value + 'x';
+        });
+
+        document.getElementById('chemokineSlider').addEventListener('input', (e) => {
+            document.getElementById('chemokineValue').textContent = e.target.value + '%';
+        });
+
+        document.getElementById('collagenaseSlider').addEventListener('input', (e) => {
+            document.getElementById('collagenaseValue').textContent = e.target.value + '%';
+        });
+
+        // Initialize
+        initializeCells();
+        updateStage();
+        animate();
+        pauseSimulation();
+    </script>
+</body>
+</html>
